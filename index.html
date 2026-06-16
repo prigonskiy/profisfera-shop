@@ -1,48 +1,58 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ПрофиСфера — витрина (прототип)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ПрофиСфера — витрина (прототип)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
 
-<header class="topbar">
-  <div class="topbar-inner">
-    <div class="brand">
-      <span class="logo">Профи<b>Сфера</b></span>
-      <span class="tag">стоматология · витрина-прототип</span>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="logo">Профи<b>Сфера</b></span>
+        <span class="tag">стоматология · витрина-прототип</span>
+      </div>
+      <nav class="topnav">
+        <button class="navtab" data-view="catalog">Каталог</button>
+        <button class="navtab" data-view="brands">Производители</button>
+      </nav>
+      <span class="pim-badge"><span class="dot"></span>данные из PIM в реальном времени</span>
     </div>
-    <span class="pim-badge"><span class="dot"></span>данные из PIM в реальном времени</span>
+    <div class="audiences" id="audiences"></div>
+    <div class="directions" id="directions"></div>
+    <div style="height:14px"></div>
+  </header>
+
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <h2>Категории</h2>
+      <ul class="tree" id="tree"></ul>
+    </aside>
+
+    <main>
+      <div id="brandhero"></div>
+      <div class="main-head">
+        <h1 id="heading">Каталог</h1>
+        <div class="count" id="count"></div>
+      </div>
+      <div class="grid" id="grid"></div>
+      <button class="more" id="more" style="display:none">Показать ещё</button>
+    </main>
   </div>
-  <div class="audiences" id="audiences"></div>
-  <div class="directions" id="directions"></div>
-  <div style="height:14px"></div>
-</header>
 
-<div class="shell">
-  <aside class="sidebar">
-    <h2>Категории</h2>
-    <ul class="tree" id="tree"></ul>
-  </aside>
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true"></aside>
 
-  <main>
-    <div class="main-head">
-      <h1 id="heading">Каталог</h1>
-      <div class="count" id="count"></div>
-    </div>
-    <div class="grid" id="grid"></div>
-    <button class="more" id="more" style="display:none">Показать ещё</button>
-  </main>
-</div>
-
-<div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer" aria-hidden="true"></aside>
-
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
+
 </html>

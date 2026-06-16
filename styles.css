@@ -747,3 +747,142 @@ h3 {
   outline-offset: 2px;
   border-radius: 6px
 }
+
+/* ---- навигация Каталог/Производители ---- */
+.topnav {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px
+}
+
+.navtab {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 13px;
+  border-radius: 9px;
+  transition: background .12s, color .12s
+}
+
+.navtab:hover {
+  color: var(--ink);
+  background: #fff
+}
+
+.navtab[aria-pressed="true"] {
+  color: var(--primary-deep);
+  background: var(--mint)
+}
+
+/* ---- режим без сайдбара (производители / страница бренда) ---- */
+.shell.full {
+  grid-template-columns: 1fr
+}
+
+.shell.full .sidebar {
+  display: none
+}
+
+/* ---- ссылка-бренд в карточке товара ---- */
+.brandlink {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  color: var(--primary-deep);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-decoration: underline;
+  text-underline-offset: 2px
+}
+
+.brandlink:hover {
+  color: var(--primary)
+}
+
+/* ---- карточки производителей ---- */
+.brandcard .ph {
+  background: #fff
+}
+
+.brandcard .ph img {
+  object-fit: contain;
+  mix-blend-mode: normal;
+  padding: 18px
+}
+
+.brandcard .ph .noimg {
+  color: var(--ink);
+  font-family: "Space Grotesk";
+  font-weight: 600;
+  font-size: 16px;
+  text-align: center;
+  padding: 0 14px
+}
+
+/* ---- страница производителя ---- */
+.back {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 15px;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 18px
+}
+
+.back:hover {
+  border-color: var(--primary)
+}
+
+.brandhead {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 26px
+}
+
+.brandhead .blogo {
+  flex: 0 0 auto;
+  width: 130px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden
+}
+
+.brandhead .blogo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  padding: 6px
+}
+
+.brandhead .brandinfo {
+  flex: 1;
+  min-width: 0
+}
+
+.btitle {
+  font-size: 26px;
+  margin-bottom: 10px
+}
+
+@media (max-width:560px) {
+  .brandhead {
+    flex-direction: column
+  }
+}
