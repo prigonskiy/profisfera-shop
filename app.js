@@ -1,338 +1,338 @@
 const API_BASE = "https://profisfera-pim.ru";
 
-const api = (p) => API_BASE.replace(/\/$/, "") + p;
-const state = { view: "catalog", brand: null, brands: [], audience: null, direction: null, category: null, menu: [], next: null };
+const api = (p) => API_BASE.replace(/\/$/,"") + p;
+const state = { view:"catalog", brand:null, brands:[], audience:null, direction:null, category:null, menu:[], next:null };
 
-const $ = (s, r = document) => r.querySelector(s);
-const el = (t, c) => { const e = document.createElement(t); if (c) e.className = c; return e; };
-function flag(code) { if (!code || code.length !== 2) return ""; return code.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0))); }
-function esc(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+const $ = (s,r=document)=>r.querySelector(s);
+const el = (t,c)=>{const e=document.createElement(t); if(c) e.className=c; return e;};
+function flag(code){ if(!code||code.length!==2) return ""; return code.toUpperCase().replace(/./g,c=>String.fromCodePoint(127397+c.charCodeAt(0))); }
+function esc(s){ const d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; }
 
-async function fetchJSON(url) {
-  const r = await fetch(url, { headers: { "Accept": "application/json" } });
-  if (!r.ok) throw new Error("HTTP " + r.status);
+async function fetchJSON(url){
+  const r = await fetch(url, { headers:{ "Accept":"application/json" }});
+  if(!r.ok) throw new Error("HTTP "+r.status);
   return r.json();
 }
 
 /* ---------- навигация: аудитории + направления ---------- */
-async function loadMenu() {
+async function loadMenu(){
   state.menu = await fetchJSON(api("/api/audiences/menu/"));
   renderAudiences(); renderDirections();
 }
-function renderAudiences() {
-  const box = $("#audiences"); box.innerHTML = "";
-  const eb = el("span", "eyebrow"); eb.textContent = "Для кого"; box.appendChild(eb);
-  box.appendChild(pill("Все аудитории", state.audience === null, () => { state.audience = null; state.direction = null; onFilter(); }));
-  state.menu.forEach(a => {
-    box.appendChild(pill((a.icon ? a.icon + " " : "") + a.name, state.audience === a.slug, () => {
-      state.audience = a.slug; state.direction = null; onFilter();
+function renderAudiences(){
+  const box = $("#audiences"); box.innerHTML="";
+  const eb = el("span","eyebrow"); eb.textContent="Для кого"; box.appendChild(eb);
+  box.appendChild(pill("Все аудитории", state.audience===null, ()=>{ state.audience=null; state.direction=null; onFilter(); }));
+  state.menu.forEach(a=>{
+    box.appendChild(pill((a.icon? a.icon+" ":"")+a.name, state.audience===a.slug, ()=>{
+      state.audience = a.slug; state.direction=null; onFilter();
     }));
   });
 }
-function pill(label, active, on) {
-  const b = el("button", "pill"); b.innerHTML = esc(label); b.setAttribute("aria-pressed", active);
-  b.onclick = on; return b;
+function pill(label, active, on){
+  const b=el("button","pill"); b.innerHTML=esc(label); b.setAttribute("aria-pressed", active);
+  b.onclick=on; return b;
 }
-function renderDirections() {
-  const box = $("#directions"); box.innerHTML = "";
-  const aud = state.menu.find(a => a.slug === state.audience);
-  if (!aud || !aud.directions.length) return;
-  box.appendChild(chip("Все направления", state.direction === null, () => { state.direction = null; onFilter(); }));
-  aud.directions.forEach(d => {
-    box.appendChild(chip(d.name, state.direction === d.slug, () => { state.direction = d.slug; onFilter(); }));
+function renderDirections(){
+  const box=$("#directions"); box.innerHTML="";
+  const aud = state.menu.find(a=>a.slug===state.audience);
+  if(!aud || !aud.directions.length) return;
+  box.appendChild(chip("Все направления", state.direction===null, ()=>{ state.direction=null; onFilter(); }));
+  aud.directions.forEach(d=>{
+    box.appendChild(chip(d.name, state.direction===d.slug, ()=>{ state.direction=d.slug; onFilter(); }));
   });
 }
-function chip(label, active, on) {
-  const b = el("button", "chip"); b.textContent = label; b.setAttribute("aria-pressed", active); b.onclick = on; return b;
+function chip(label, active, on){
+  const b=el("button","chip"); b.textContent=label; b.setAttribute("aria-pressed",active); b.onclick=on; return b;
 }
 
 /* ---------- категории (дерево-хребет) ---------- */
-async function loadTree() {
+async function loadTree(){
   const roots = await fetchJSON(api("/api/categories/tree/"));
-  const ul = $("#tree"); ul.innerHTML = "";
-  const all = el("li"); all.appendChild(treeBtn({ name: "Все категории", id: null }, true));
+  const ul=$("#tree"); ul.innerHTML="";
+  const all=el("li"); all.appendChild(treeBtn({name:"Все категории",id:null}, true));
   ul.appendChild(all);
-  roots.forEach(c => ul.appendChild(treeNode(c)));
+  roots.forEach(c=>ul.appendChild(treeNode(c)));
 }
-function treeNode(cat) {
-  const li = el("li"); li.appendChild(treeBtn(cat, false));
-  if (cat.children && cat.children.length) {
-    const sub = el("ul", "sub"); cat.children.forEach(ch => sub.appendChild(treeNode(ch))); li.appendChild(sub);
+function treeNode(cat){
+  const li=el("li"); li.appendChild(treeBtn(cat,false));
+  if(cat.children && cat.children.length){
+    const sub=el("ul","sub"); cat.children.forEach(ch=>sub.appendChild(treeNode(ch))); li.appendChild(sub);
   }
   return li;
 }
-function treeBtn(cat, isReset) {
-  const b = el("button", isReset ? "reset" : ""); b.textContent = cat.name;
-  b.setAttribute("aria-pressed", state.category === cat.id);
-  b.onclick = () => { state.category = cat.id; onFilter(); };
+function treeBtn(cat, isReset){
+  const b=el("button", isReset?"reset":""); b.textContent=cat.name;
+  b.setAttribute("aria-pressed", state.category===cat.id);
+  b.onclick=()=>{ state.category=cat.id; onFilter(); };
   return b;
 }
 
 /* ---------- товары ---------- */
-function onFilter() {
+function onFilter(){
   renderAudiences(); renderDirections(); refreshTreePressed();
   $("#heading").textContent = headingText();
   loadProducts(true);
 }
-function refreshTreePressed() {
-  $("#tree").querySelectorAll("button").forEach(b => { /* перерисуем дерево проще: */ });
+function refreshTreePressed(){
+  $("#tree").querySelectorAll("button").forEach(b=>{ /* перерисуем дерево проще: */ });
   loadTree(); // дерево лёгкое — перерисуем, чтобы подсветить активную ветку
 }
-function headingText() {
-  const a = state.menu.find(x => x.slug === state.audience);
-  const d = a && a.directions.find(x => x.slug === state.direction);
-  if (d) return a.name + " · " + d.name;
-  if (a) return a.name;
+function headingText(){
+  const a=state.menu.find(x=>x.slug===state.audience);
+  const d=a && a.directions.find(x=>x.slug===state.direction);
+  if(d) return a.name+" · "+d.name;
+  if(a) return a.name;
   return "Каталог";
 }
-function queryString() {
-  if (state.view === "brand" && state.brand) return "brand=" + encodeURIComponent(state.brand);
-  const q = new URLSearchParams();
-  if (state.audience) q.set("audience", state.audience);
-  if (state.direction) q.set("direction", state.direction);
-  if (state.category) q.set("category", state.category);
+function queryString(){
+  if(state.view==="brand" && state.brand) return "brand="+encodeURIComponent(state.brand);
+  const q=new URLSearchParams();
+  if(state.audience) q.set("audience", state.audience);
+  if(state.direction) q.set("direction", state.direction);
+  if(state.category) q.set("category", state.category);
   return q.toString();
 }
 
 /* ---------- навигация: Каталог / Производители ---------- */
-function setView(v) {
+function setView(v){
   state.view = v;
-  if (v !== "brand") state.brand = null;
-  document.querySelectorAll(".navtab").forEach(b => {
-    const active = b.dataset.view === v || (v === "brand" && b.dataset.view === "brands");
+  if(v!=="brand") state.brand = null;
+  document.querySelectorAll(".navtab").forEach(b=>{
+    const active = b.dataset.view===v || (v==="brand" && b.dataset.view==="brands");
     b.setAttribute("aria-pressed", active);
   });
-  const isCat = v === "catalog";
+  const isCat = v==="catalog";
   $("#audiences").style.display = isCat ? "" : "none";
   $("#directions").style.display = isCat ? "" : "none";
   $(".shell").classList.toggle("full", !isCat);
   $("#brandhero").innerHTML = "";
   $("#more").style.display = "none";
-  if (v === "catalog") { $("#heading").textContent = headingText(); loadProducts(true); }
-  else if (v === "brands") { $("#heading").textContent = "Производители"; loadBrands(); }
+  if(v==="catalog"){ $("#heading").textContent = headingText(); loadProducts(true); }
+  else if(v==="brands"){ $("#heading").textContent = "Производители"; loadBrands(); }
   // для v==="brand" наполнение делает openBrand()
 }
 
 /* ---------- производители ---------- */
-function stripHtml(s) {
-  if (!s) return "";
-  const d = document.createElement("div"); d.innerHTML = s;
-  return (d.textContent || "").replace(/\s+/g, " ").trim();
+function stripHtml(s){
+  if(!s) return "";
+  const d=document.createElement("div"); d.innerHTML=s;
+  return (d.textContent||"").replace(/\s+/g," ").trim();
 }
-function emptyMsg(title, text) {
-  const d = el("div", "state"); d.innerHTML = "<h3>" + esc(title) + "</h3><p>" + esc(text) + "</p>"; return d;
+function emptyMsg(title, text){
+  const d=el("div","state"); d.innerHTML="<h3>"+esc(title)+"</h3><p>"+esc(text)+"</p>"; return d;
 }
-async function loadBrands() {
-  const grid = $("#grid"); grid.innerHTML = "";
-  for (let i = 0; i < 4; i++) grid.appendChild(el("div", "skel"));
-  try {
+async function loadBrands(){
+  const grid=$("#grid"); grid.innerHTML="";
+  for(let i=0;i<4;i++) grid.appendChild(el("div","skel"));
+  try{
     const data = await fetchJSON(api("/api/brands/"));
     const items = data.results || data;
     state.brands = items;
-    grid.innerHTML = "";
-    $("#count").innerHTML = "<b>" + items.length + "</b> производителей";
-    if (!items.length) { grid.appendChild(emptyMsg("Производителей пока нет", "Добавьте бренды в PIM.")); return; }
-    items.forEach(b => grid.appendChild(brandCard(b)));
-  } catch (e) { grid.innerHTML = ""; grid.appendChild(errorState(e)); }
+    grid.innerHTML="";
+    $("#count").innerHTML = "<b>"+items.length+"</b> производителей";
+    if(!items.length){ grid.appendChild(emptyMsg("Производителей пока нет","Добавьте бренды в PIM.")); return; }
+    items.forEach(b=>grid.appendChild(brandCard(b)));
+  }catch(e){ grid.innerHTML=""; grid.appendChild(errorState(e)); }
 }
-function brandCard(b) {
-  const c = el("button", "card brandcard"); c.onclick = () => openBrand(b.id);
-  const ph = el("div", "ph");
-  if (b.logo) { const im = el("img"); im.src = b.logo; im.alt = b.name; im.loading = "lazy"; ph.appendChild(im); }
-  else { const n = el("div", "noimg"); n.textContent = b.name; ph.appendChild(n); }
+function brandCard(b){
+  const c=el("button","card brandcard"); c.onclick=()=>openBrand(b.slug);
+  const ph=el("div","ph");
+  if(b.logo){ const im=el("img"); im.src=b.logo; im.alt=b.name; im.loading="lazy"; ph.appendChild(im); }
+  else { const n=el("div","noimg"); n.textContent=b.name; ph.appendChild(n); }
   c.appendChild(ph);
-  const body = el("div", "body");
-  const nm = el("div", "nm"); nm.textContent = b.name; body.appendChild(nm);
-  const txt = stripHtml(b.description);
-  if (txt) { const ds = el("div", "ds"); ds.textContent = txt; body.appendChild(ds); }
+  const body=el("div","body");
+  const nm=el("div","nm"); nm.textContent=b.name; body.appendChild(nm);
+  const txt=stripHtml(b.description);
+  if(txt){ const ds=el("div","ds"); ds.textContent=txt; body.appendChild(ds); }
   c.appendChild(body);
   return c;
 }
-async function openBrand(id) {
-  state.brand = id;
+async function openBrand(slug){
   setView("brand");
-  const hero = $("#brandhero");
-  hero.innerHTML = "<div class='skel' style='height:140px'></div>";
-  $("#heading").textContent = ""; $("#count").innerHTML = ""; $("#grid").innerHTML = "";
-  try {
-    const b = await fetchJSON(api("/api/brands/" + id + "/"));
-    let h = "<button class='back' onclick=\"setView('brands')\">← Все производители</button>";
-    h += "<div class='brandhead'>";
-    if (b.logo) h += "<div class='blogo'><img src='" + esc(b.logo) + "' alt='" + esc(b.name) + "'></div>";
-    h += "<div class='brandinfo'><h1 class='btitle'>" + esc(b.name) + "</h1>";
-    h += b.description ? "<div class='rich'>" + b.description + "</div>"
-      : "<p style='color:var(--muted)'>Описание производителя пока не заполнено в PIM.</p>";
-    h += "</div></div>";
-    hero.innerHTML = h;
-    $("#heading").textContent = "Товары производителя";
-    loadProducts(true);   // queryString() вернёт brand=id
-  } catch (e) { hero.innerHTML = ""; $("#grid").innerHTML = ""; $("#grid").appendChild(errorState(e)); }
+  const hero=$("#brandhero");
+  hero.innerHTML="<div class='skel' style='height:140px'></div>";
+  $("#heading").textContent=""; $("#count").innerHTML=""; $("#grid").innerHTML="";
+  try{
+    const b = await fetchJSON(api("/api/brands/"+encodeURIComponent(slug)+"/"));
+    state.brand = b.id;   // деталь ищем по slug, а товары фильтруем по числовому id
+    let h="<button class='back' onclick=\"setView('brands')\">← Все производители</button>";
+    h+="<div class='brandhead'>";
+    if(b.logo) h+="<div class='blogo'><img src='"+esc(b.logo)+"' alt='"+esc(b.name)+"'></div>";
+    h+="<div class='brandinfo'><h1 class='btitle'>"+esc(b.name)+"</h1>";
+    h+= b.description ? "<div class='rich'>"+b.description+"</div>"
+                      : "<p style='color:var(--muted)'>Описание производителя пока не заполнено в PIM.</p>";
+    h+="</div></div>";
+    hero.innerHTML=h;
+    $("#heading").textContent="Товары производителя";
+    loadProducts(true);   // queryString() вернёт brand=<id>
+  }catch(e){ hero.innerHTML=""; $("#grid").innerHTML=""; $("#grid").appendChild(errorState(e)); }
 }
-async function loadProducts(reset) {
-  const grid = $("#grid");
-  if (reset) { grid.innerHTML = ""; for (let i = 0; i < 6; i++) { const s = el("div", "skel"); grid.appendChild(s); } $("#more").style.display = "none"; }
-  try {
-    const url = reset ? api("/api/products/?" + queryString()) : state.next;
+async function loadProducts(reset){
+  const grid=$("#grid");
+  if(reset){ grid.innerHTML=""; for(let i=0;i<6;i++){const s=el("div","skel");grid.appendChild(s);} $("#more").style.display="none"; }
+  try{
+    const url = reset ? api("/api/products/?"+queryString()) : state.next;
     const data = await fetchJSON(url);
     const items = data.results || data;
     state.next = data.next || null;
-    if (reset) { grid.innerHTML = ""; $("#count").innerHTML = (data.count != null ? "<b>" + data.count + "</b> товаров" : ""); }
-    if (reset && items.length === 0) { grid.appendChild(emptyState()); return; }
-    items.forEach(p => grid.appendChild(card(p)));
+    if(reset){ grid.innerHTML=""; $("#count").innerHTML = (data.count!=null? "<b>"+data.count+"</b> товаров" : ""); }
+    if(reset && items.length===0){ grid.appendChild(emptyState()); return; }
+    items.forEach(p=>grid.appendChild(card(p)));
     $("#more").style.display = state.next ? "block" : "none";
-  } catch (e) {
-    grid.innerHTML = ""; grid.appendChild(errorState(e));
+  }catch(e){
+    grid.innerHTML=""; grid.appendChild(errorState(e));
   }
 }
-function card(p) {
-  const c = el("button", "card"); c.onclick = () => openProduct(p.slug);
-  const ph = el("div", "ph");
-  if (p.thumbnail) { const im = el("img"); im.src = p.thumbnail; im.alt = p.name; im.loading = "lazy"; ph.appendChild(im); }
-  else { const n = el("div", "noimg"); n.textContent = "без фото"; ph.appendChild(n); }
+function card(p){
+  const c=el("button","card"); c.onclick=()=>openProduct(p.slug);
+  const ph=el("div","ph");
+  if(p.thumbnail){ const im=el("img"); im.src=p.thumbnail; im.alt=p.name; im.loading="lazy"; ph.appendChild(im); }
+  else { const n=el("div","noimg"); n.textContent="без фото"; ph.appendChild(n); }
   c.appendChild(ph);
-  const b = el("div", "body");
-  if (p.brand) { const kr = el("div", "kr"); kr.textContent = p.brand; b.appendChild(kr); }
-  const nm = el("div", "nm"); nm.textContent = p.name; b.appendChild(nm);
-  if (p.short_description) { const ds = el("div", "ds"); ds.textContent = p.short_description; b.appendChild(ds); }
-  const f = el("div", "facets");
-  (p.directions || []).slice(0, 3).forEach(s => { const t = el("span", "tagx"); t.textContent = s; f.appendChild(t); });
+  const b=el("div","body");
+  if(p.brand){ const kr=el("div","kr"); kr.textContent=p.brand; b.appendChild(kr); }
+  const nm=el("div","nm"); nm.textContent=p.name; b.appendChild(nm);
+  if(p.short_description){ const ds=el("div","ds"); ds.textContent=p.short_description; b.appendChild(ds); }
+  const f=el("div","facets");
+  (p.directions||[]).slice(0,3).forEach(s=>{ const t=el("span","tagx"); t.textContent=s; f.appendChild(t); });
   b.appendChild(f); c.appendChild(b);
   return c;
 }
-function emptyState() {
-  const d = el("div", "state");
-  d.innerHTML = "<h3>Под этот срез товаров нет</h3><p>Измените аудиторию, направление или категорию — или добавьте товарам эти метки в PIM.</p>";
+function emptyState(){
+  const d=el("div","state");
+  d.innerHTML="<h3>Под этот срез товаров нет</h3><p>Измените аудиторию, направление или категорию — или добавьте товарам эти метки в PIM.</p>";
   return d;
 }
-function errorState(e) {
-  const d = el("div", "state");
-  d.innerHTML = "<h3>Не удалось связаться с PIM</h3>" +
-    "<p>Проверьте, что в <code>API_BASE</code> указан верный адрес и что на стороне PIM включён CORS для этого домена.</p>" +
-    "<p style='margin-top:8px;font-size:12px'>" + esc(e.message) + " → " + esc(API_BASE) + "</p>";
+function errorState(e){
+  const d=el("div","state");
+  d.innerHTML="<h3>Не удалось связаться с PIM</h3>"+
+    "<p>Проверьте, что в <code>API_BASE</code> указан верный адрес и что на стороне PIM включён CORS для этого домена.</p>"+
+    "<p style='margin-top:8px;font-size:12px'>"+esc(e.message)+" → "+esc(API_BASE)+"</p>";
   return d;
 }
 
 /* ---------- карточка товара (drawer) ---------- */
-async function openProduct(slug) {
-  const dr = $("#drawer"), sc = $("#scrim");
-  dr.innerHTML = "<div class='dr-head'><button class='dr-close' onclick='closeDrawer()'>×</button></div><div class='dr-body'><div class='skel' style='height:200px'></div></div>";
-  dr.classList.add("open"); sc.classList.add("open"); dr.setAttribute("aria-hidden", "false");
-  document.body.style.overflow = "hidden";
-  try {
-    const p = await fetchJSON(api("/api/products/" + slug + "/"));
+async function openProduct(slug){
+  const dr=$("#drawer"), sc=$("#scrim");
+  dr.innerHTML="<div class='dr-head'><button class='dr-close' onclick='closeDrawer()'>×</button></div><div class='dr-body'><div class='skel' style='height:200px'></div></div>";
+  dr.classList.add("open"); sc.classList.add("open"); dr.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+  try{
+    const p = await fetchJSON(api("/api/products/"+slug+"/"));
     renderProduct(p);
-  } catch (e) {
-    $(".dr-body", dr).innerHTML = "<div class='state'><h3>Не удалось загрузить карточку</h3><p>" + esc(e.message) + "</p></div>";
+  }catch(e){
+    $(".dr-body",dr).innerHTML="<div class='state'><h3>Не удалось загрузить карточку</h3><p>"+esc(e.message)+"</p></div>";
   }
 }
-function closeDrawer() {
+function closeDrawer(){
   $("#drawer").classList.remove("open"); $("#scrim").classList.remove("open");
-  $("#drawer").setAttribute("aria-hidden", "true"); document.body.style.overflow = "";
+  $("#drawer").setAttribute("aria-hidden","true"); document.body.style.overflow="";
 }
-function specValue(ch) {
-  let v = ch.value;
-  if (Array.isArray(v)) v = v.join(", ");
-  else if (v === true) v = "Да"; else if (v === false) v = "Нет";
-  if (v === null || v === undefined || v === "") return "—";
-  return esc(v) + (ch.unit ? " " + esc(ch.unit) : "");
+function specValue(ch){
+  let v=ch.value;
+  if(Array.isArray(v)) v=v.join(", ");
+  else if(v===true) v="Да"; else if(v===false) v="Нет";
+  if(v===null||v===undefined||v==="") return "—";
+  return esc(v)+(ch.unit? " "+esc(ch.unit):"");
 }
-function renderProduct(p) {
-  const general = (p.characteristics || []).filter(c => c.is_global);
-  const cat = (p.characteristics || []).filter(c => !c.is_global);
-  const imgs = p.images || [];
-  const main = imgs[0] ? imgs[0].image : (p.thumbnail || null);
+function renderProduct(p){
+  const general=(p.characteristics||[]).filter(c=>c.is_global);
+  const cat=(p.characteristics||[]).filter(c=>!c.is_global);
+  const imgs=p.images||[];
+  const main = imgs[0] ? imgs[0].image : (p.thumbnail||null);
 
-  let html = "<div class='dr-head'><button class='dr-close' onclick='closeDrawer()'>×</button>";
-  html += p.brand && p.brand.name ? "<button class='brandlink' onclick=\"closeDrawer(); openBrand(" + p.brand.id + ")\">" + esc(p.brand.name) + "</button>" : "";
-  html += "<h2 class='dr-title'>" + esc(p.name) + "</h2>";
-  html += "<div class='dr-tags'>";
-  (p.audiences || []).forEach(a => html += "<span class='tag2 aud'>" + esc(a.name) + "</span>");
-  (p.directions || []).forEach(d => html += "<span class='tag2'>" + esc(d.name) + "</span>");
-  html += "</div></div>";
+  let html="<div class='dr-head'><button class='dr-close' onclick='closeDrawer()'>×</button>";
+  html+= p.brand && p.brand.name ? "<button class='brandlink' onclick=\"closeDrawer(); openBrand('"+p.brand.slug+"')\">"+esc(p.brand.name)+"</button>" : "";
+  html+= "<h2 class='dr-title'>"+esc(p.name)+"</h2>";
+  html+= "<div class='dr-tags'>";
+  (p.audiences||[]).forEach(a=> html+="<span class='tag2 aud'>"+esc(a.name)+"</span>");
+  (p.directions||[]).forEach(d=> html+="<span class='tag2'>"+esc(d.name)+"</span>");
+  html+="</div></div>";
 
-  html += "<div class='dr-body'>";
+  html+="<div class='dr-body'>";
   // галерея
-  if (main) {
-    html += "<div class='dr-gallery'><div class='dr-main'><img id='drMain' src='" + esc(main) + "' alt='" + esc(p.name) + "'></div>";
-    if (imgs.length > 1) { html += "<div class='dr-thumbs'>" + imgs.map(im => "<img src='" + esc(im.image) + "' alt='" + esc(im.alt || "") + "' onclick=\"document.getElementById('drMain').src=this.src\">").join("") + "</div>"; }
-    html += "</div>";
+  if(main){
+    html+="<div class='dr-gallery'><div class='dr-main'><img id='drMain' src='"+esc(main)+"' alt='"+esc(p.name)+"'></div>";
+    if(imgs.length>1){ html+="<div class='dr-thumbs'>"+imgs.map(im=>"<img src='"+esc(im.image)+"' alt='"+esc(im.alt||"")+"' onclick=\"document.getElementById('drMain').src=this.src\">").join("")+"</div>"; }
+    html+="</div>";
   }
-  if (p.short_description) { html += "<p style='color:var(--muted);margin:8px 0 0'>" + esc(p.short_description) + "</p>"; }
+  if(p.short_description){ html+="<p style='color:var(--muted);margin:8px 0 0'>"+esc(p.short_description)+"</p>"; }
 
   // переключатель вариантов
-  if (p.group && p.group.variants && p.group.variants.length > 1) {
-    html += "<div class='section variants'><h3>Серия «" + esc(p.group.name) + "»</h3>";
-    const levelName = (p.group.levels[0] || {}).name;
-    const buckets = {};
-    p.group.variants.forEach(v => { const key = levelName ? (v.levels[levelName] || "—") : "—"; (buckets[key] = buckets[key] || []).push(v); });
-    Object.keys(buckets).forEach(k => {
-      html += "<div class='grp'>";
-      if (levelName && k !== "—") html += "<div class='glabel'>" + esc(levelName) + ": " + esc(k) + "</div>";
-      html += "<div class='vrow'>" + buckets[k].map(v =>
-        "<button class='vbtn' aria-current='" + (v.is_current ? "true" : "false") + "' " + (v.is_current ? "" : "onclick=\"openProduct('" + esc(v.slug) + "')\"") + ">" + esc(v.label) + "</button>"
-      ).join("") + "</div></div>";
+  if(p.group && p.group.variants && p.group.variants.length>1){
+    html+="<div class='section variants'><h3>Серия «"+esc(p.group.name)+"»</h3>";
+    const levelName = (p.group.levels[0]||{}).name;
+    const buckets={};
+    p.group.variants.forEach(v=>{ const key=levelName? (v.levels[levelName]||"—") : "—"; (buckets[key]=buckets[key]||[]).push(v); });
+    Object.keys(buckets).forEach(k=>{
+      html+="<div class='grp'>";
+      if(levelName && k!=="—") html+="<div class='glabel'>"+esc(levelName)+": "+esc(k)+"</div>";
+      html+="<div class='vrow'>"+buckets[k].map(v=>
+        "<button class='vbtn' aria-current='"+(v.is_current?"true":"false")+"' "+(v.is_current?"":"onclick=\"openProduct('"+esc(v.slug)+"')\"")+">"+esc(v.label)+"</button>"
+      ).join("")+"</div></div>";
     });
-    html += "</div>";
+    html+="</div>";
   }
 
   // ключевые идентификаторы (PIM-поля — моноширинным)
-  const idRows = [];
-  if (p.external_id) idRows.push(["Код (1С)", "<span class='mono'>" + esc(p.external_id) + "</span>"]);
-  if (p.manufacturer_sku) idRows.push(["Артикул", "<span class='mono'>" + esc(p.manufacturer_sku) + "</span>"]);
-  if (p.gtin) idRows.push(["Штрих-код (GTIN)", "<span class='mono'>" + esc(p.gtin) + "</span>"]);
-  if (p.tnved_code) idRows.push(["Код ТН ВЭД", "<span class='mono'>" + esc(p.tnved_code) + "</span>"]);
-  if (p.country_of_origin) idRows.push(["Страна", flag(p.country_of_origin.code) + " " + esc(p.country_of_origin.name)]);
-  if (p.category && p.category.name) idRows.push(["Категория", esc(p.category.name)]);
-  if (idRows.length) {
-    html += "<div class='section'><h3>Идентификация</h3><dl class='dl'>" +
-      idRows.map(r => "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>").join("") + "</dl></div>";
+  const idRows=[];
+  if(p.external_id) idRows.push(["Код (1С)", "<span class='mono'>"+esc(p.external_id)+"</span>"]);
+  if(p.manufacturer_sku) idRows.push(["Артикул", "<span class='mono'>"+esc(p.manufacturer_sku)+"</span>"]);
+  if(p.gtin) idRows.push(["Штрих-код (GTIN)", "<span class='mono'>"+esc(p.gtin)+"</span>"]);
+  if(p.tnved_code) idRows.push(["Код ТН ВЭД", "<span class='mono'>"+esc(p.tnved_code)+"</span>"]);
+  if(p.country_of_origin) idRows.push(["Страна", flag(p.country_of_origin.code)+" "+esc(p.country_of_origin.name)]);
+  if(p.category && p.category.name) idRows.push(["Категория", esc(p.category.name)]);
+  if(idRows.length){
+    html+="<div class='section'><h3>Идентификация</h3><dl class='dl'>"+
+      idRows.map(r=>"<dt>"+r[0]+"</dt><dd>"+r[1]+"</dd>").join("")+"</dl></div>";
   }
 
   // характеристики — общие и категорийные раздельно (как в PIM)
-  if (general.length) {
-    html += "<div class='section'><h3>Общие характеристики</h3>" +
-      general.map(c => "<div class='spec'><span class='k'>" + esc(c.name) + "</span><span class='v'>" + specValue(c) + "</span></div>").join("") + "</div>";
+  if(general.length){
+    html+="<div class='section'><h3>Общие характеристики</h3>"+
+      general.map(c=>"<div class='spec'><span class='k'>"+esc(c.name)+"</span><span class='v'>"+specValue(c)+"</span></div>").join("")+"</div>";
   }
-  if (cat.length) {
-    html += "<div class='section'><h3>Характеристики категории</h3>" +
-      cat.map(c => "<div class='spec'><span class='k'>" + esc(c.name) + "</span><span class='v'>" + specValue(c) + "</span></div>").join("") + "</div>";
+  if(cat.length){
+    html+="<div class='section'><h3>Характеристики категории</h3>"+
+      cat.map(c=>"<div class='spec'><span class='k'>"+esc(c.name)+"</span><span class='v'>"+specValue(c)+"</span></div>").join("")+"</div>";
   }
 
   // полное описание (HTML из TinyMCE — доверенный контент PIM)
-  if (p.full_description) {
-    html += "<div class='section'><h3>Описание</h3><div class='rich'>" + p.full_description + "</div></div>";
+  if(p.full_description){
+    html+="<div class='section'><h3>Описание</h3><div class='rich'>"+p.full_description+"</div></div>";
   }
 
   // логистика
-  const lg = p.logistics || {};
-  if (lg.gross_width_mm || lg.gross_height_mm || lg.gross_depth_mm || lg.gross_weight_kg) {
-    html += "<div class='section'><h3>Логистика (брутто)</h3><dl class='dl'>";
-    if (lg.gross_width_mm) html += "<dt>Ширина</dt><dd>" + esc(lg.gross_width_mm) + " мм</dd>";
-    if (lg.gross_height_mm) html += "<dt>Высота</dt><dd>" + esc(lg.gross_height_mm) + " мм</dd>";
-    if (lg.gross_depth_mm) html += "<dt>Глубина</dt><dd>" + esc(lg.gross_depth_mm) + " мм</dd>";
-    if (lg.gross_weight_kg) html += "<dt>Масса</dt><dd>" + esc(lg.gross_weight_kg) + " кг</dd>";
-    html += "</dl></div>";
+  const lg=p.logistics||{};
+  if(lg.gross_width_mm||lg.gross_height_mm||lg.gross_depth_mm||lg.gross_weight_kg){
+    html+="<div class='section'><h3>Логистика (брутто)</h3><dl class='dl'>";
+    if(lg.gross_width_mm) html+="<dt>Ширина</dt><dd>"+esc(lg.gross_width_mm)+" мм</dd>";
+    if(lg.gross_height_mm) html+="<dt>Высота</dt><dd>"+esc(lg.gross_height_mm)+" мм</dd>";
+    if(lg.gross_depth_mm) html+="<dt>Глубина</dt><dd>"+esc(lg.gross_depth_mm)+" мм</dd>";
+    if(lg.gross_weight_kg) html+="<dt>Масса</dt><dd>"+esc(lg.gross_weight_kg)+" кг</dd>";
+    html+="</dl></div>";
   }
 
   // документы
-  if (p.documents && p.documents.length) {
-    html += "<div class='section docs'><h3>Документы</h3>" +
-      p.documents.map(d => "<a href='" + esc(d.file) + "' target='_blank' rel='noopener'>📄 " + esc(d.name) + (d.number ? " · " + esc(d.number) : "") + "</a>").join("") + "</div>";
+  if(p.documents && p.documents.length){
+    html+="<div class='section docs'><h3>Документы</h3>"+
+      p.documents.map(d=>"<a href='"+esc(d.file)+"' target='_blank' rel='noopener'>📄 "+esc(d.name)+(d.number? " · "+esc(d.number):"")+"</a>").join("")+"</div>";
   }
 
-  html += "</div>";
-  $("#drawer").innerHTML = html;
+  html+="</div>";
+  $("#drawer").innerHTML=html;
 }
 
-$("#scrim").onclick = closeDrawer;
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
-$("#more").onclick = () => loadProducts(false);
+$("#scrim").onclick=closeDrawer;
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeDrawer(); });
+$("#more").onclick=()=>loadProducts(false);
 
 /* ---------- старт ---------- */
-(async function init() {
-  document.querySelectorAll(".navtab").forEach(b => b.onclick = () => setView(b.dataset.view));
-  try {
+(async function init(){
+  document.querySelectorAll(".navtab").forEach(b=> b.onclick=()=>setView(b.dataset.view));
+  try{
     await Promise.all([loadMenu(), loadTree()]);
-  } catch (e) { /* меню/дерево могли не загрузиться — товары покажут ошибку сами */ }
+  }catch(e){ /* меню/дерево могли не загрузиться — товары покажут ошибку сами */ }
   setView("catalog");   // отрисует каталог (загрузит товары)
 })();
