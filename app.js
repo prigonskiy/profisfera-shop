@@ -7,6 +7,12 @@ const $ = (s,r=document)=>r.querySelector(s);
 const el = (t,c)=>{const e=document.createElement(t); if(c) e.className=c; return e;};
 function flag(code){ if(!code||code.length!==2) return ""; return code.toUpperCase().replace(/./g,c=>String.fromCodePoint(127397+c.charCodeAt(0))); }
 function esc(s){ const d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; }
+function fmtDate(iso){ const m=String(iso||"").match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}.${m[2]}.${m[1]}`:""; }
+function docValidity(d){
+  if(d.is_perpetual) return "Бессрочный";
+  if(d.valid_until) return "Действует до "+fmtDate(d.valid_until);
+  return "";
+}
 
 async function fetchJSON(url){
   const r = await fetch(url, { headers:{ "Accept":"application/json" }});
@@ -314,10 +320,22 @@ function renderProduct(p){
     html+="</dl></div>";
   }
 
-  // документы
+  // документы — плитки: тип, название, номер, срок, скачивание
   if(p.documents && p.documents.length){
-    html+="<div class='section docs'><h3>Документы</h3>"+
-      p.documents.map(d=>"<a href='"+esc(d.file)+"' target='_blank' rel='noopener'>📄 "+esc(d.name)+(d.number? " · "+esc(d.number):"")+"</a>").join("")+"</div>";
+    html+="<div class='section'><h3>Документы</h3><div class='doc-grid'>"+
+      p.documents.map(d=>{
+        const sub=[]; if(d.number) sub.push("№ "+esc(d.number));
+        const val=docValidity(d); if(val) sub.push(esc(val));
+        return "<a class='doc-tile' href='"+esc(d.file)+"' target='_blank' rel='noopener'>"+
+          "<span class='doc-ic'>PDF</span>"+
+          "<span class='doc-meta'>"+
+            (d.doc_type_display? "<span class='doc-type'>"+esc(d.doc_type_display)+"</span>" : "")+
+            "<span class='doc-name'>"+esc(d.name)+"</span>"+
+            (sub.length? "<span class='doc-sub'>"+sub.join(" · ")+"</span>" : "")+
+          "</span>"+
+          "<span class='doc-dl'>скачать</span>"+
+        "</a>";
+      }).join("")+"</div></div>";
   }
 
   html+="</div>";
