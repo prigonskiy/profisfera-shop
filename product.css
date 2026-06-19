@@ -35,3 +35,10 @@
   .pgallery{position:static}
   .ptitle{font-size:25px}
 }
+
+/* ---- страницы брендов и категорий (SSG) ---- */
+.page-shell{max-width:1200px;margin:0 auto;padding:22px 20px 60px}
+.page-shell .sec-h{font-size:18px;margin:26px 0 14px}
+/* бренд-ссылка в шапке карточки товара */
+.brandlink-a{display:inline-block;text-decoration:none;margin-bottom:6px}
+.brandlink-a:hover{color:var(--primary)}

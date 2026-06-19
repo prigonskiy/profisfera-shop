@@ -142,7 +142,7 @@ async function loadBrands(){
   }catch(e){ grid.innerHTML=""; grid.appendChild(errorState(e)); }
 }
 function brandCard(b){
-  const c=el("button","card brandcard"); c.onclick=()=>openBrand(b.slug);
+  const c=el("a","card brandcard"); c.href="brand/"+encodeURIComponent(b.slug)+"/";
   const ph=el("div","ph");
   if(b.logo){ const im=el("img"); im.src=b.logo; im.alt=b.name; im.loading="lazy"; ph.appendChild(im); }
   else { const n=el("div","noimg"); n.textContent=b.name; ph.appendChild(n); }
@@ -200,9 +200,7 @@ function card(p){
   if(p.brand){ const kr=el("div","kr"); kr.textContent=p.brand; b.appendChild(kr); }
   const nm=el("div","nm"); nm.textContent=p.name; b.appendChild(nm);
   if(p.short_description){ const ds=el("div","ds"); ds.textContent=p.short_description; b.appendChild(ds); }
-  const f=el("div","facets");
-  (p.directions||[]).slice(0,3).forEach(s=>{ const t=el("span","tagx"); t.textContent=s; f.appendChild(t); });
-  b.appendChild(f); c.appendChild(b);
+  c.appendChild(b);
   return c;
 }
 function emptyState(){
