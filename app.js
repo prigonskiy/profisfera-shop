@@ -191,7 +191,7 @@ async function loadProducts(reset){
   }
 }
 function card(p){
-  const c=el("button","card"); c.onclick=()=>openProduct(p.slug);
+  const c=el("a","card"); c.href="product/"+encodeURIComponent(p.slug)+"/";
   const ph=el("div","ph");
   if(p.thumbnail){ const im=el("img"); im.src=p.thumbnail; im.alt=p.name; im.loading="lazy"; ph.appendChild(im); }
   else { const n=el("div","noimg"); n.textContent="без фото"; ph.appendChild(n); }

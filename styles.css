@@ -201,3 +201,6 @@ h1,h2,h3{font-family:"Space Grotesk",sans-serif;margin:0;letter-spacing:-.01em}
 .brandhead .brandinfo{flex:1;min-width:0}
 .btitle{font-size:26px;margin-bottom:10px}
 @media (max-width:560px){ .brandhead{flex-direction:column} }
+
+/* карточка-ссылка (переход на полноэкранную страницу товара) */
+a.card{text-decoration:none;color:inherit}
