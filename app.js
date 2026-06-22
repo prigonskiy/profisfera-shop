@@ -68,21 +68,17 @@ function treeNode(cat){
   return li;
 }
 function treeBtn(cat, isReset){
-  const b=el("button", isReset?"reset":""); b.textContent=cat.name;
-  b.setAttribute("aria-pressed", state.category===cat.id);
-  b.onclick=()=>{ state.category=cat.id; onFilter(); };
-  return b;
+  const a=el("a", isReset?"reset":"");
+  a.textContent=cat.name;
+  a.href = isReset ? "./" : ("c/"+encodeURIComponent(cat.slug)+"/");
+  return a;
 }
 
 /* ---------- товары ---------- */
 function onFilter(){
-  renderAudiences(); renderDirections(); refreshTreePressed();
+  renderAudiences(); renderDirections();
   $("#heading").textContent = headingText();
   loadProducts(true);
-}
-function refreshTreePressed(){
-  $("#tree").querySelectorAll("button").forEach(b=>{ /* перерисуем дерево проще: */ });
-  loadTree(); // дерево лёгкое — перерисуем, чтобы подсветить активную ветку
 }
 function headingText(){
   const a=state.menu.find(x=>x.slug===state.audience);
@@ -346,9 +342,14 @@ $("#more").onclick=()=>loadProducts(false);
 
 /* ---------- старт ---------- */
 (async function init(){
-  document.querySelectorAll(".navtab").forEach(b=> b.onclick=()=>setView(b.dataset.view));
+  document.querySelectorAll(".navtab").forEach(a=> a.onclick=(e)=>{
+    if(e.ctrlKey||e.metaKey||e.shiftKey||e.button) return;   // дать открыть в новой вкладке
+    e.preventDefault();
+    setView(a.dataset.view);
+    history.replaceState(null,"",a.getAttribute("href"));     // адрес отражает раздел
+  });
   try{
     await Promise.all([loadMenu(), loadTree()]);
   }catch(e){ /* меню/дерево могли не загрузиться — товары покажут ошибку сами */ }
-  setView("catalog");   // отрисует каталог (загрузит товары)
+  setView(location.hash==="#brands" ? "brands" : "catalog");
 })();
