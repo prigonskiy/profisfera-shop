@@ -48,30 +48,8 @@ async function fetchList(apiPath) {
   return items;
 }
 
-/* ---------- утилиты вёрстки ---------- */
-const esc = (s) =>
-  String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-const stripHtml = (s) => String(s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-const fmtDate = (iso) => {
-  const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${m[3]}.${m[2]}.${m[1]}` : "";
-};
-const docValidity = (d) =>
-  d.is_perpetual ? "Бессрочный" : d.valid_until ? "Действует до " + fmtDate(d.valid_until) : "";
-function flag(code) {
-  if (!code || code.length !== 2) return "";
-  return code.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
-}
-function specValue(ch) {
-  let v = ch.value;
-  if (Array.isArray(v)) v = v.join(", ");
-  else if (v === true) v = "Да";
-  else if (v === false) v = "Нет";
-  if (v === null || v === undefined || v === "") return "—";
-  return esc(v) + (ch.unit ? " " + esc(ch.unit) : "");
-}
+/* утилиты вёрстки и рендер тела товара — общий модуль (его же грузит браузер) */
+import { esc, stripHtml, mainImage, productMain } from "./render-product.js";
 
 /* ---------- общий каркас страницы ---------- */
 function layout({ title, description, canonical, image, bodyClass, content }) {
@@ -94,7 +72,7 @@ ${desc ? `<meta name="description" content="${esc(desc)}">` : ""}
 ${og}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="${SITE_BASE}/styles.css">
 <link rel="stylesheet" href="${SITE_BASE}/product.css">
 </head>
@@ -135,98 +113,20 @@ function grid(products, emptyText) {
 /* ---------- страница товара ---------- */
 function productPage(p) {
   const canonical = `${SITE_BASE}/product/${p.slug}/`;
-  const imgs = p.images || [];
-  const main = imgs[0] ? imgs[0].image : p.thumbnail || null;
-  const general = (p.characteristics || []).filter((c) => c.is_global);
-  const cat = (p.characteristics || []).filter((c) => !c.is_global);
+  const main = mainImage(p);
 
-  let gallery = `<div class="pgallery">`;
-  if (main) {
-    gallery += `<div class="pmain"><img src="${esc(main)}" alt="${esc(p.name)}"></div>`;
-    if (imgs.length > 1)
-      gallery += `<div class="pthumbs">` + imgs.map((im) => `<img src="${esc(im.image)}" alt="${esc(im.alt || "")}" loading="lazy">`).join("") + `</div>`;
-  } else {
-    gallery += `<div class="pmain pmain--empty">без фото</div>`;
-  }
-  gallery += `</div>`;
+  // Живая подгрузка: при открытии страница тянет свежие данные из API и
+  // перерисовывает тело тем же кодом, что использовал сборщик (render-product.js).
+  const hydrate = `<script type="module">
+import { productMain } from "${SITE_BASE}/render-product.js";
+fetch(${JSON.stringify(API_BASE)} + "/api/products/${p.slug}/", { headers: { Accept: "application/json" } })
+  .then(r => r.ok ? r.json() : null)
+  .then(d => { if (d) { const m = document.querySelector(".product-shell"); if (m) m.innerHTML = productMain(d, ${JSON.stringify(SITE_BASE)}); } })
+  .catch(() => {});
+</script>`;
 
-  let summary = `<div class="psummary">`;
-  if (p.brand && p.brand.name)
-    summary += `<a class="kr2 brandlink-a" href="${SITE_BASE}/brand/${esc(p.brand.slug)}/">${esc(p.brand.name)}</a>`;
-  summary += `<h1 class="ptitle">${esc(p.name)}</h1>`;
-  const tags = [];
-  (p.audiences || []).forEach((a) => tags.push(`<span class="tag2 aud">${esc(a.name)}</span>`));
-  (p.directions || []).forEach((d) => tags.push(`<span class="tag2">${esc(d.name)}</span>`));
-  if (tags.length) summary += `<div class="dr-tags">${tags.join("")}</div>`;
-  if (p.short_description) summary += `<p class="plede">${esc(p.short_description)}</p>`;
-  const idRows = [];
-  if (p.manufacturer_sku) idRows.push(["Артикул", `<span class="mono">${esc(p.manufacturer_sku)}</span>`]);
-  if (p.gtin) idRows.push(["Штрих-код (GTIN)", `<span class="mono">${esc(p.gtin)}</span>`]);
-  if (p.tnved_code) idRows.push(["Код ТН ВЭД", `<span class="mono">${esc(p.tnved_code)}</span>`]);
-  if (p.country_of_origin) idRows.push(["Страна", flag(p.country_of_origin.code) + " " + esc(p.country_of_origin.name)]);
-  if (p.category && p.category.name) idRows.push(["Категория", esc(p.category.name)]);
-  if (idRows.length) summary += `<dl class="dl">` + idRows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("") + `</dl>`;
-  summary += `</div>`;
-
-  let sections = "";
-  if (p.group && p.group.variants && p.group.variants.length > 1) {
-    const levelName = (p.group.levels[0] || {}).name;
-    const buckets = {};
-    p.group.variants.forEach((v) => {
-      const key = levelName ? v.levels[levelName] || "—" : "—";
-      (buckets[key] = buckets[key] || []).push(v);
-    });
-    let vh = `<div class="section variants"><h3>Серия «${esc(p.group.name)}»</h3>`;
-    Object.keys(buckets).forEach((k) => {
-      vh += `<div class="grp">`;
-      if (levelName && k !== "—") vh += `<div class="glabel">${esc(levelName)}: ${esc(k)}</div>`;
-      vh += `<div class="vrow">` + buckets[k].map((v) =>
-        v.is_current
-          ? `<span class="vbtn" aria-current="true">${esc(v.label)}</span>`
-          : `<a class="vbtn" href="${SITE_BASE}/product/${esc(v.slug)}/">${esc(v.label)}</a>`
-      ).join("") + `</div></div>`;
-    });
-    vh += `</div>`;
-    sections += vh;
-  }
-  if (general.length)
-    sections += `<div class="section"><h3>Общие характеристики</h3>` +
-      general.map((c) => `<div class="spec"><span class="k">${esc(c.name)}</span><span class="v">${specValue(c)}</span></div>`).join("") + `</div>`;
-  if (cat.length)
-    sections += `<div class="section"><h3>Характеристики категории</h3>` +
-      cat.map((c) => `<div class="spec"><span class="k">${esc(c.name)}</span><span class="v">${specValue(c)}</span></div>`).join("") + `</div>`;
-  if (p.full_description)
-    sections += `<div class="section"><h3>Описание</h3><div class="rich">${p.full_description}</div></div>`;
-  const lg = p.logistics || {};
-  if (lg.gross_width_mm || lg.gross_height_mm || lg.gross_depth_mm || lg.gross_weight_kg) {
-    let l = `<div class="section"><h3>Логистика (брутто)</h3><dl class="dl">`;
-    if (lg.gross_width_mm) l += `<dt>Ширина</dt><dd>${esc(lg.gross_width_mm)} мм</dd>`;
-    if (lg.gross_height_mm) l += `<dt>Высота</dt><dd>${esc(lg.gross_height_mm)} мм</dd>`;
-    if (lg.gross_depth_mm) l += `<dt>Глубина</dt><dd>${esc(lg.gross_depth_mm)} мм</dd>`;
-    if (lg.gross_weight_kg) l += `<dt>Масса</dt><dd>${esc(lg.gross_weight_kg)} кг</dd>`;
-    l += `</dl></div>`;
-    sections += l;
-  }
-  if (p.documents && p.documents.length) {
-    sections += `<div class="section"><h3>Документы</h3><div class="doc-grid">` +
-      p.documents.map((d) => {
-        const sub = [];
-        if (d.number) sub.push("№ " + esc(d.number));
-        const val = docValidity(d);
-        if (val) sub.push(esc(val));
-        return `<a class="doc-tile" href="${esc(d.file)}" target="_blank" rel="noopener">` +
-          `<span class="doc-ic">PDF</span><span class="doc-meta">` +
-          `<span class="doc-type">${esc(d.doc_type_display || "Документ")}</span>` +
-          (sub.length ? `<span class="doc-sub">${sub.join(" · ")}</span>` : "") +
-          `</span><span class="doc-dl">скачать</span></a>`;
-      }).join("") + `</div></div>`;
-  }
-
-  const content = `<main class="product-shell">
-  <a class="crumb" href="${SITE_BASE}/">← Каталог</a>
-  <div class="product-top">${gallery}${summary}</div>
-  <div class="product-sections">${sections}</div>
-</main>`;
+  const content = `<main class="product-shell">${productMain(p, SITE_BASE)}</main>
+${hydrate}`;
   return layout({
     title: `${p.name} — ПрофиСфера`,
     description: p.short_description || stripHtml(p.full_description),
@@ -307,7 +207,7 @@ function collectCategories(nodes) {
   return out;
 }
 async function copyStatic() {
-  for (const f of ["app.js", "styles.css", "product.css", "logo.svg"]) {
+  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js"]) {
     const src = path.join(ROOT, f);
     if (existsSync(src)) await copyFile(src, path.join(OUT, f));
   }

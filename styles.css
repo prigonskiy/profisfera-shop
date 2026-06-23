@@ -21,7 +21,7 @@ body{
 a{color:inherit}
 button{font-family:inherit;cursor:pointer}
 .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
-h1,h2,h3{font-family:"Space Grotesk",sans-serif;margin:0;letter-spacing:-.01em}
+h1,h2,h3{font-family:"Manrope",sans-serif;margin:0;letter-spacing:-.01em}
 
 /* ---- top bar ---- */
 .topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.92);
@@ -90,7 +90,7 @@ h1,h2,h3{font-family:"Space Grotesk",sans-serif;margin:0;letter-spacing:-.01em}
 .card .ph .noimg{color:#9BBDBE;font-size:13px}
 .card .body{padding:14px 15px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
 .card .kr{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--primary-deep);font-weight:600}
-.card .nm{font-family:"Space Grotesk";font-weight:600;font-size:15.5px;line-height:1.25}
+.card .nm{font-family:"Manrope";font-weight:600;font-size:15.5px;line-height:1.25}
 .card .ds{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .card .facets{margin-top:auto;display:flex;flex-wrap:wrap;gap:5px;padding-top:8px}
 .tagx{font-size:11px;background:#F0F5F6;border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--muted)}
@@ -187,7 +187,7 @@ h1,h2,h3{font-family:"Space Grotesk",sans-serif;margin:0;letter-spacing:-.01em}
 /* ---- карточки производителей ---- */
 .brandcard .ph{background:#fff}
 .brandcard .ph img{object-fit:contain;mix-blend-mode:normal;padding:18px}
-.brandcard .ph .noimg{color:var(--ink);font-family:"Space Grotesk";font-weight:600;font-size:16px;text-align:center;padding:0 14px}
+.brandcard .ph .noimg{color:var(--ink);font-family:"Manrope";font-weight:600;font-size:16px;text-align:center;padding:0 14px}
 
 /* ---- страница производителя ---- */
 .back{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 15px;font-size:13px;color:var(--ink);margin-bottom:18px}
