@@ -160,18 +160,28 @@ function categoryPage(cat, products, filterData) {
   const gridHtml = products.length
     ? `<div class="grid" id="cat-grid">${products.map(productTile).join("")}</div>`
     : `<div class="state"><h3>Товаров пока нет</h3><p>В этой категории пока нет товаров.</p></div>`;
-  const json = JSON.stringify(filterData).replace(/</g, "\\u003c");
   const hasFilters =
     (filterData.filters && filterData.filters.length) ||
     (filterData.brands && filterData.brands.length > 1);
+
+  let body;
+  if (hasFilters) {
+    // двухколоночная раскладка только когда есть что фильтровать
+    const json = JSON.stringify(filterData).replace(/</g, "\\u003c");
+    body = `<div class="cat-layout">
+    <aside class="filters" id="filters"></aside>
+    <div class="cat-products">${gridHtml}</div>
+  </div>
+  <script type="application/json" id="category-filters-data">${json}</script>`;
+  } else {
+    // фильтров нет — сетка во всю ширину, панель не рисуем
+    body = gridHtml;
+  }
+
   const content = `<main class="page-shell">
   <a class="crumb" href="${SITE_BASE}/">← Каталог</a>
   <div class="main-head"><h1>${esc(cat.name)}</h1><div class="count" id="cat-count"><b>${products.length}</b> товаров</div></div>
-  <div class="cat-layout">
-    <aside class="filters" id="filters" hidden></aside>
-    <div class="cat-products">${gridHtml}</div>
-  </div>
-  <script type="application/json" id="category-filters-data">${json}</script>
+  ${body}
 </main>
 ${hasFilters ? `<script src="${SITE_BASE}/category-filters.js" defer></script>` : ""}`;
   return layout({
