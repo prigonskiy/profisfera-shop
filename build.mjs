@@ -155,13 +155,25 @@ function brandPage(b, products) {
 }
 
 /* ---------- страница категории (раздела) ---------- */
-function categoryPage(cat, products) {
+function categoryPage(cat, products, filterData) {
   const canonical = `${SITE_BASE}/c/${cat.slug}/`;
+  const gridHtml = products.length
+    ? `<div class="grid" id="cat-grid">${products.map(productTile).join("")}</div>`
+    : `<div class="state"><h3>Товаров пока нет</h3><p>В этой категории пока нет товаров.</p></div>`;
+  const json = JSON.stringify(filterData).replace(/</g, "\\u003c");
+  const hasFilters =
+    (filterData.filters && filterData.filters.length) ||
+    (filterData.brands && filterData.brands.length > 1);
   const content = `<main class="page-shell">
   <a class="crumb" href="${SITE_BASE}/">← Каталог</a>
-  <div class="main-head"><h1>${esc(cat.name)}</h1><div class="count"><b>${products.length}</b> товаров</div></div>
-  ${grid(products, "В этой категории пока нет товаров.")}
-</main>`;
+  <div class="main-head"><h1>${esc(cat.name)}</h1><div class="count" id="cat-count"><b>${products.length}</b> товаров</div></div>
+  <div class="cat-layout">
+    <aside class="filters" id="filters" hidden></aside>
+    <div class="cat-products">${gridHtml}</div>
+  </div>
+  <script type="application/json" id="category-filters-data">${json}</script>
+</main>
+${hasFilters ? `<script src="${SITE_BASE}/category-filters.js" defer></script>` : ""}`;
   return layout({
     title: `${cat.name} — каталог — ПрофиСфера`,
     description: `Каталог: ${cat.name}. Стоматологические материалы и инструменты ПрофиСфера.`,
@@ -207,7 +219,7 @@ function collectCategories(nodes) {
   return out;
 }
 async function copyStatic() {
-  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js"]) {
+  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js"]) {
     const src = path.join(ROOT, f);
     if (existsSync(src)) await copyFile(src, path.join(OUT, f));
   }
@@ -220,10 +232,14 @@ async function main() {
 
   // товары
   const list = await fetchList("/api/products/");
+  const charsBySlug = {}; // slug -> { code: value } (значения характеристик для фильтров)
   let n = 0;
   for (const item of list) {
     if (!item.slug) continue;
     const detail = await getJSON(`/api/products/${item.slug}/`);
+    const map = {};
+    (detail.characteristics || []).forEach((c) => { map[c.code] = c.value; });
+    charsBySlug[item.slug] = map;
     const dir = path.join(OUT, "product", item.slug);
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, "index.html"), productPage(detail), "utf8");
@@ -251,9 +267,27 @@ async function main() {
   for (const c of cats) {
     if (!c.slug) continue;
     const prods = list.filter((p) => c.slugs.includes(p.category)); // включая товары вложенных категорий
+    // конфиг фильтров (с наследованием) + значения товаров только по нужным кодам
+    let filters = [];
+    try {
+      filters = await getJSON(`/api/categories/${c.slug}/filters/`);
+    } catch (e) {
+      filters = []; // нет конфигурации — страница просто без фильтров
+    }
+    const codes = filters.map((f) => f.code);
+    const brandsSet = new Set();
+    const values = {};
+    for (const p of prods) {
+      const entry = { brand: p.brand || null };
+      if (p.brand) brandsSet.add(p.brand);
+      const ch = charsBySlug[p.slug] || {};
+      for (const code of codes) if (code in ch) entry[code] = ch[code];
+      values[p.slug] = entry;
+    }
+    const filterData = { filters, brands: Array.from(brandsSet).sort(), values };
     const dir = path.join(OUT, "c", c.slug);
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, "index.html"), categoryPage(c, prods), "utf8");
+    await writeFile(path.join(dir, "index.html"), categoryPage(c, prods, filterData), "utf8");
     urls.push(`${SITE_BASE}/c/${c.slug}/`);
     nc++;
   }
