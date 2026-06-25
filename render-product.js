@@ -40,7 +40,7 @@ export function specValue(ch) {
 export const mainImage = (p) => (p.images && p.images[0] ? p.images[0].image : p.thumbnail || null);
 
 /** Внутренний HTML <main class="product-shell"> — крошка + верх + секции. */
-export function productMain(p, SITE_BASE) {
+export function productMain(p, SITE_BASE, categoryTrail) {
   const imgs = p.images || [];
   const main = mainImage(p);
   const general = (p.characteristics || []).filter((c) => c.is_global);
@@ -129,7 +129,11 @@ export function productMain(p, SITE_BASE) {
   }
 
   const trail = [{ name: "Каталог", href: SITE_BASE + "/" }];
-  if (p.category && p.category.slug) trail.push({ name: p.category.name, href: SITE_BASE + "/c/" + p.category.slug + "/" });
+  if (categoryTrail && categoryTrail.length) {
+    categoryTrail.forEach((c) => trail.push({ name: c.name, href: SITE_BASE + "/c/" + c.slug + "/" }));
+  } else if (p.category && p.category.slug) {
+    trail.push({ name: p.category.name, href: SITE_BASE + "/c/" + p.category.slug + "/" });
+  }
   trail.push({ name: p.name });
   return `${crumbs(trail)}
   <div class="product-top">${gallery}${summary}</div>

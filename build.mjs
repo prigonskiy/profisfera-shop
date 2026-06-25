@@ -111,21 +111,24 @@ function grid(products, emptyText) {
 }
 
 /* ---------- страница товара ---------- */
-function productPage(p) {
+function productPage(p, categoryTrail) {
   const canonical = `${SITE_BASE}/product/${p.slug}/`;
   const main = mainImage(p);
+  const trail = categoryTrail || [];
+  const trailJson = JSON.stringify(trail).replace(/</g, "\\u003c");
 
-  // Живая подгрузка: при открытии страница тянет свежие данные из API и
-  // перерисовывает тело тем же кодом, что использовал сборщик (render-product.js).
+  // Живая подгрузка: страница тянет свежие данные и перерисовывает тело тем же кодом.
+  // Путь категории (CATEGORY_TRAIL) статичен — встроен один раз и передаётся в рендер.
   const hydrate = `<script type="module">
 import { productMain } from "${SITE_BASE}/render-product.js";
+const CATEGORY_TRAIL = ${trailJson};
 fetch(${JSON.stringify(API_BASE)} + "/api/products/${p.slug}/", { headers: { Accept: "application/json" } })
   .then(r => r.ok ? r.json() : null)
-  .then(d => { if (d) { const m = document.querySelector(".product-shell"); if (m) m.innerHTML = productMain(d, ${JSON.stringify(SITE_BASE)}); } })
+  .then(d => { if (d) { const m = document.querySelector(".product-shell"); if (m) m.innerHTML = productMain(d, ${JSON.stringify(SITE_BASE)}, CATEGORY_TRAIL); } })
   .catch(() => {});
 </script>`;
 
-  const content = `<main class="product-shell">${productMain(p, SITE_BASE)}</main>
+  const content = `<main class="product-shell">${productMain(p, SITE_BASE, trail)}</main>
 ${hydrate}`;
   return layout({
     title: `${p.name} — ПрофиСфера`,
@@ -249,6 +252,12 @@ async function main() {
   await copyStatic();
   const urls = [`${SITE_BASE}/`];
 
+  // дерево категорий — заранее: и для крошек товара (путь предков), и для страниц категорий
+  const tree = await getJSON("/api/categories/tree/");
+  const cats = collectCategories(tree);
+  const trailBySlug = {};
+  cats.forEach((c) => { trailBySlug[c.slug] = c.trail; });
+
   // товары
   const list = await fetchList("/api/products/");
   const charsBySlug = {}; // slug -> { code: value } (значения характеристик для фильтров)
@@ -259,9 +268,10 @@ async function main() {
     const map = {};
     (detail.characteristics || []).forEach((c) => { map[c.code] = c.value; });
     charsBySlug[item.slug] = map;
+    const trail = (detail.category && trailBySlug[detail.category.slug]) || [];
     const dir = path.join(OUT, "product", item.slug);
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, "index.html"), productPage(detail), "utf8");
+    await writeFile(path.join(dir, "index.html"), productPage(detail, trail), "utf8");
     urls.push(`${SITE_BASE}/product/${item.slug}/`);
     n++;
   }
@@ -279,9 +289,7 @@ async function main() {
     nb++;
   }
 
-  // категории (разделы)
-  const tree = await getJSON("/api/categories/tree/");
-  const cats = collectCategories(tree);
+  // категории (разделы) — cats уже собраны выше
   let nc = 0;
   for (const c of cats) {
     if (!c.slug) continue;
