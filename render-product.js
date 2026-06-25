@@ -9,6 +9,16 @@ export const esc = (s) =>
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 export const stripHtml = (s) => String(s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+export function crumbs(items) {
+  // items: [{name, href?}]; элемент без href — текущая страница (не ссылка)
+  const sep = '<span class="crumb-sep" aria-hidden="true">\u203a</span>';
+  const parts = items.map(function (it) {
+    return it.href
+      ? `<a href="${esc(it.href)}">${esc(it.name)}</a>`
+      : `<span aria-current="page">${esc(it.name)}</span>`;
+  });
+  return `<nav class="crumbs" aria-label="\u0425\u043b\u0435\u0431\u043d\u044b\u0435 \u043a\u0440\u043e\u0448\u043a\u0438">${parts.join(sep)}</nav>`;
+}
 export const fmtDate = (iso) => {
   const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m ? `${m[3]}.${m[2]}.${m[1]}` : "";
@@ -118,7 +128,10 @@ export function productMain(p, SITE_BASE) {
       }).join("") + `</div></div>`;
   }
 
-  return `<a class="crumb" href="${SITE_BASE}/">← Каталог</a>
+  const trail = [{ name: "Каталог", href: SITE_BASE + "/" }];
+  if (p.category && p.category.slug) trail.push({ name: p.category.name, href: SITE_BASE + "/c/" + p.category.slug + "/" });
+  trail.push({ name: p.name });
+  return `${crumbs(trail)}
   <div class="product-top">${gallery}${summary}</div>
   <div class="product-sections">${sections}</div>`;
 }

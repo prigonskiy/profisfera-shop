@@ -49,7 +49,7 @@ async function fetchList(apiPath) {
 }
 
 /* утилиты вёрстки и рендер тела товара — общий модуль (его же грузит браузер) */
-import { esc, stripHtml, mainImage, productMain } from "./render-product.js";
+import { esc, stripHtml, mainImage, productMain, crumbs } from "./render-product.js";
 
 /* ---------- общий каркас страницы ---------- */
 function layout({ title, description, canonical, image, bodyClass, content }) {
@@ -141,8 +141,13 @@ function brandPage(b, products) {
   const desc = b.description
     ? `<div class="rich">${b.description}</div>`
     : `<p style="color:var(--muted)">Описание производителя пока не заполнено в PIM.</p>`;
+  const bcrumbs = crumbs([
+    { name: "Каталог", href: `${SITE_BASE}/` },
+    { name: "Производители", href: `${SITE_BASE}/#brands` },
+    { name: b.name },
+  ]);
   const content = `<main class="page-shell">
-  <a class="crumb" href="${SITE_BASE}/">← Каталог</a>
+  ${bcrumbs}
   <div class="brandhead">${logo}<div class="brandinfo"><h1 class="btitle">${esc(b.name)}</h1>${desc}</div></div>
   <div class="main-head"><h2 class="sec-h">Товары производителя</h2><div class="count"><b>${products.length}</b> товаров</div></div>
   ${grid(products, "У этого производителя пока нет товаров в каталоге.")}
@@ -178,8 +183,11 @@ function categoryPage(cat, products, filterData) {
     body = gridHtml;
   }
 
+  const trailItems = [{ name: "Каталог", href: `${SITE_BASE}/` }];
+  (cat.trail || []).slice(0, -1).forEach((a) => trailItems.push({ name: a.name, href: `${SITE_BASE}/c/${a.slug}/` }));
+  trailItems.push({ name: cat.name });
   const content = `<main class="page-shell">
-  <a class="crumb" href="${SITE_BASE}/">← Каталог</a>
+  ${crumbs(trailItems)}
   <div class="main-head"><h1>${esc(cat.name)}</h1><div class="count" id="cat-count"><b>${products.length}</b> товаров</div></div>
   ${body}
 </main>
@@ -219,13 +227,14 @@ const robots = () => `User-agent: *\nAllow: /\n\nSitemap: ${SITE_BASE}/sitemap.x
 /* ---------- сборка ---------- */
 function collectCategories(nodes) {
   const out = [];
-  function walk(node) {
+  function walk(node, trail) {
+    const myTrail = trail.concat([{ name: node.name, slug: node.slug }]);
     const slugs = [node.slug];
-    (node.children || []).forEach((ch) => slugs.push(...walk(ch)));
-    out.push({ id: node.id, name: node.name, slug: node.slug, slugs });
+    (node.children || []).forEach((ch) => slugs.push(...walk(ch, myTrail)));
+    out.push({ id: node.id, name: node.name, slug: node.slug, slugs, trail: myTrail });
     return slugs;
   }
-  nodes.forEach(walk);
+  nodes.forEach((n) => walk(n, []));
   return out;
 }
 async function copyStatic() {
