@@ -204,10 +204,26 @@ h1,h2,h3{font-family:"Manrope",sans-serif;margin:0;letter-spacing:-.01em}
 /* карточка-ссылка (переход на полноэкранную страницу товара) */
 a.card{text-decoration:none;color:inherit}
 
-/* ---- фильтры на странице категории ---- */
-.cat-layout{display:grid;grid-template-columns:248px 1fr;gap:26px;align-items:start}
+/* ---- левый сайдбар категории: дерево + фильтры ---- */
+.cat-layout{display:grid;grid-template-columns:260px 1fr;gap:26px;align-items:start}
 .cat-products{min-width:0}
-.filters{position:sticky;top:18px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.cat-sidebar{position:sticky;top:18px;display:flex;flex-direction:column;gap:18px;max-height:calc(100vh - 36px);overflow:auto}
+.cat-sidebar-close{display:none}
+.side-title{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin:0 0 8px}
+
+/* дерево категорий */
+.cat-nav ul{list-style:none;margin:0;padding:0}
+.cat-nav>ul{border:1px solid var(--line);border-radius:14px;padding:8px}
+.cat-nav ul ul{margin-left:12px;border-left:1px solid var(--line);padding-left:6px}
+.cat-nav a{display:flex;justify-content:space-between;gap:8px;align-items:baseline;padding:6px 8px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px}
+.cat-nav a:hover{background:rgba(0,0,0,.04)}
+.cat-nav a.current{background:rgba(0,0,0,.06);color:var(--primary);font-weight:500}
+.cat-nav .cat-count{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.cat-nav a.current .cat-count{color:var(--primary)}
+#tree .tree-count{color:var(--muted);font-size:12px;margin-left:6px;font-variant-numeric:tabular-nums}
+
+/* фильтры (внутри сайдбара) */
+.filters{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
 .filters[hidden]{display:none}
 .filters-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .filters-title{font-size:16px;margin:0}
@@ -222,9 +238,21 @@ a.card{text-decoration:none;color:inherit}
 .range-row{display:flex;align-items:center;gap:8px}
 .range-in{width:100%;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:9px;font-size:14px}
 .range-dash{color:var(--muted)}
+
+/* мобильные кнопки и оверлей — скрыты на десктопе */
+.cat-mobilebar{display:none;gap:10px;margin-bottom:14px}
+.cat-overlay{display:none}
+
 @media (max-width:760px){
   .cat-layout{grid-template-columns:1fr}
-  .filters{position:static}
+  .cat-mobilebar{display:flex}
+  .cat-mobilebar button{flex:1;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px;cursor:pointer}
+  .cat-sidebar{position:fixed;top:0;left:0;bottom:0;z-index:50;width:84%;max-width:320px;max-height:none;background:#fff;border-right:1px solid var(--line);box-shadow:0 0 40px rgba(0,0,0,.15);padding:18px;transform:translateX(-100%);transition:transform .22s ease}
+  .cat-sidebar.open{transform:none}
+  .cat-sidebar-close{display:block;align-self:flex-end;border:0;background:transparent;font-size:24px;line-height:1;cursor:pointer;color:var(--muted);padding:0 4px}
+  .cat-overlay{display:block;position:fixed;inset:0;z-index:49;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .22s ease}
+  .cat-overlay.show{opacity:1;pointer-events:auto}
+  body.cat-drawer-open{overflow:hidden}
 }
 
 /* ---- хлебные крошки ---- */

@@ -163,7 +163,18 @@ function brandPage(b, products) {
 }
 
 /* ---------- страница категории (раздела) ---------- */
-function categoryPage(cat, products, filterData) {
+function catNav(nodes, currentSlug, counts) {
+  return nodes.map((n) => {
+    const c = counts[n.slug];
+    const cnt = c != null ? `<span class="cat-count">${c}</span>` : "";
+    const cur = n.slug === currentSlug ? ' class="current" aria-current="page"' : "";
+    const kids = (n.children && n.children.length)
+      ? `<ul>${catNav(n.children, currentSlug, counts)}</ul>` : "";
+    return `<li><a href="${SITE_BASE}/c/${n.slug}/"${cur}>${esc(n.name)}${cnt}</a>${kids}</li>`;
+  }).join("");
+}
+
+function categoryPage(cat, products, filterData, tree, counts) {
   const canonical = `${SITE_BASE}/c/${cat.slug}/`;
   const gridHtml = products.length
     ? `<div class="grid" id="cat-grid">${products.map(productTile).join("")}</div>`
@@ -172,30 +183,40 @@ function categoryPage(cat, products, filterData) {
     (filterData.filters && filterData.filters.length) ||
     (filterData.brands && filterData.brands.length > 1);
 
-  let body;
-  if (hasFilters) {
-    // двухколоночная раскладка только когда есть что фильтровать
-    const json = JSON.stringify(filterData).replace(/</g, "\\u003c");
-    body = `<div class="cat-layout">
-    <aside class="filters" id="filters"></aside>
-    <div class="cat-products">${gridHtml}</div>
-  </div>
-  <script type="application/json" id="category-filters-data">${json}</script>`;
-  } else {
-    // фильтров нет — сетка во всю ширину, панель не рисуем
-    body = gridHtml;
-  }
+  const nav = `<nav class="cat-nav" aria-label="Категории">
+      <div class="side-title">Категории</div>
+      <ul>${catNav(tree, cat.slug, counts)}</ul>
+    </nav>`;
+  const filtersBlock = hasFilters ? `<div class="filters" id="filters"></div>` : "";
+  const sidebar = `<aside class="cat-sidebar" id="cat-sidebar">
+      <button type="button" class="cat-sidebar-close" aria-label="Закрыть">×</button>
+      ${nav}${filtersBlock}
+    </aside>`;
+  const mobilebar = `<div class="cat-mobilebar">
+    <button type="button" class="cat-mtoggle" data-target="cat"><i class="ti"></i>Категории</button>
+    ${hasFilters ? `<button type="button" class="cat-mtoggle" data-target="filters">Фильтры</button>` : ""}
+  </div>`;
+  const filtersJson = hasFilters
+    ? `<script type="application/json" id="category-filters-data">${JSON.stringify(filterData).replace(/</g, "\\u003c")}</script>`
+    : "";
 
   const trailItems = [{ name: "Каталог", href: `${SITE_BASE}/` }];
   (cat.trail || []).slice(0, -1).forEach((a) => trailItems.push({ name: a.name, href: `${SITE_BASE}/c/${a.slug}/` }));
   trailItems.push({ name: cat.name });
+
   const content = `<main class="page-shell">
   ${crumbs(trailItems)}
   <div class="main-head"><h1>${esc(cat.name)}</h1><div class="count" id="cat-count"><b>${products.length}</b> товаров</div></div>
-  ${body}
+  ${mobilebar}
+  <div class="cat-layout">
+    ${sidebar}
+    <div class="cat-products">${gridHtml}</div>
+  </div>
+  ${filtersJson}
 </main>
+<script src="${SITE_BASE}/category-nav.js" defer></script>
 ${hasFilters ? `<script src="${SITE_BASE}/category-filters.js" defer></script>` : ""}`;
-  return layout({
+    return layout({
     title: `${cat.name} — каталог — ПрофиСфера`,
     description: `Каталог: ${cat.name}. Стоматологические материалы и инструменты ПрофиСфера.`,
     canonical, image: null, bodyClass: "page-category", content,
@@ -241,7 +262,7 @@ function collectCategories(nodes) {
   return out;
 }
 async function copyStatic() {
-  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js"]) {
+  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js"]) {
     const src = path.join(ROOT, f);
     if (existsSync(src)) await copyFile(src, path.join(OUT, f));
   }
@@ -289,6 +310,11 @@ async function main() {
     nb++;
   }
 
+  // количество товаров по поддереву каждой категории (счётчики в навигации)
+  const countBySlug = {};
+  for (const c of cats) countBySlug[c.slug] = list.filter((p) => c.slugs.includes(p.category)).length;
+  await writeFile(path.join(OUT, "counts.json"), JSON.stringify(countBySlug), "utf8");
+
   // категории (разделы) — cats уже собраны выше
   let nc = 0;
   for (const c of cats) {
@@ -314,7 +340,7 @@ async function main() {
     const filterData = { filters, brands: Array.from(brandsSet).sort(), values };
     const dir = path.join(OUT, "c", c.slug);
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, "index.html"), categoryPage(c, prods, filterData), "utf8");
+    await writeFile(path.join(dir, "index.html"), categoryPage(c, prods, filterData, tree, countBySlug), "utf8");
     urls.push(`${SITE_BASE}/c/${c.slug}/`);
     nc++;
   }
