@@ -163,14 +163,19 @@ function brandPage(b, products) {
 }
 
 /* ---------- страница категории (раздела) ---------- */
-function catNav(nodes, currentSlug, counts) {
+function catNav(nodes, currentSlug, counts, openSet) {
   return nodes.map((n) => {
     const c = counts[n.slug];
     const cnt = c != null ? `<span class="cat-count">${c}</span>` : "";
     const cur = n.slug === currentSlug ? ' class="current" aria-current="page"' : "";
-    const kids = (n.children && n.children.length)
-      ? `<ul>${catNav(n.children, currentSlug, counts)}</ul>` : "";
-    return `<li><a href="${SITE_BASE}/c/${n.slug}/"${cur}>${esc(n.name)}${cnt}</a>${kids}</li>`;
+    const hasKids = n.children && n.children.length;
+    const open = openSet.has(n.slug);
+    const liClass = hasKids ? (open ? "has-kids" : "has-kids collapsed") : "";
+    const toggle = hasKids
+      ? `<button type="button" class="cat-toggle" aria-label="Развернуть или свернуть"></button>`
+      : `<span class="cat-toggle"></span>`;
+    const kids = hasKids ? `<ul>${catNav(n.children, currentSlug, counts, openSet)}</ul>` : "";
+    return `<li${liClass ? ` class="${liClass}"` : ""}><div class="cat-row">${toggle}<a href="${SITE_BASE}/c/${n.slug}/"${cur}>${esc(n.name)}${cnt}</a></div>${kids}</li>`;
   }).join("");
 }
 
@@ -183,9 +188,10 @@ function categoryPage(cat, products, filterData, tree, counts) {
     (filterData.filters && filterData.filters.length) ||
     (filterData.brands && filterData.brands.length > 1);
 
+  const openSet = new Set((cat.trail || []).map((t) => t.slug));
   const nav = `<nav class="cat-nav" aria-label="Категории">
       <div class="side-title">Категории</div>
-      <ul>${catNav(tree, cat.slug, counts)}</ul>
+      <ul>${catNav(tree, cat.slug, counts, openSet)}</ul>
     </nav>`;
   const filtersBlock = hasFilters ? `<div class="filters" id="filters"></div>` : "";
   const sidebar = `<aside class="cat-sidebar" id="cat-sidebar">

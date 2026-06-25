@@ -38,4 +38,12 @@
   sidebar.querySelectorAll(".cat-nav a").forEach(function (a) {
     a.addEventListener("click", close);
   });
+
+  // сворачивание/разворачивание веток дерева
+  sidebar.querySelectorAll("button.cat-toggle").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var li = btn.closest("li");
+      if (li) li.classList.toggle("collapsed");
+    });
+  });
 })();

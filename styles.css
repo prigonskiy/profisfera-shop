@@ -213,17 +213,21 @@ a.card{text-decoration:none;color:inherit}
 
 /* дерево категорий */
 .cat-nav ul{list-style:none;margin:0;padding:0}
-.cat-nav>ul{border:1px solid var(--line);border-radius:14px;padding:8px}
-.cat-nav ul ul{margin-left:12px;border-left:1px solid var(--line);padding-left:6px}
-.cat-nav a{display:flex;justify-content:space-between;gap:8px;align-items:baseline;padding:6px 8px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px}
+.cat-nav ul ul{margin-left:10px}
+.cat-nav li.collapsed>ul{display:none}
+.cat-row{display:flex;align-items:baseline}
+.cat-toggle{flex:none;width:16px;height:22px;border:0;background:transparent;padding:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.cat-nav li.has-kids>.cat-row>.cat-toggle::before{content:"";border:4px solid transparent;border-left-color:var(--muted);transform:rotate(90deg);transition:transform .15s}
+.cat-nav li.has-kids.collapsed>.cat-row>.cat-toggle::before{transform:rotate(0)}
+.cat-nav a{flex:1;min-width:0;display:flex;justify-content:space-between;gap:8px;align-items:baseline;padding:5px 8px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px;line-height:1.35}
 .cat-nav a:hover{background:rgba(0,0,0,.04)}
-.cat-nav a.current{background:rgba(0,0,0,.06);color:var(--primary);font-weight:500}
-.cat-nav .cat-count{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.cat-nav a.current{color:var(--primary);font-weight:500;background:rgba(0,0,0,.03);box-shadow:inset 2px 0 0 var(--primary)}
+.cat-nav .cat-count{flex:none;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 .cat-nav a.current .cat-count{color:var(--primary)}
 #tree .tree-count{color:var(--muted);font-size:12px;margin-left:6px;font-variant-numeric:tabular-nums}
 
 /* фильтры (внутри сайдбара) */
-.filters{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.filters{background:transparent;border:0;border-top:1px solid var(--line);border-radius:0;padding:14px 2px 0}
 .filters[hidden]{display:none}
 .filters-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .filters-title{font-size:16px;margin:0}
