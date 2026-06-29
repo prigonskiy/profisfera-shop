@@ -5,11 +5,11 @@
    константа API_BASE.
    ================================================================= */
 :root{
-  --bg:#F4F8F9; --surface:#ffffff; --ink:#0E2A31; --muted:#5B7780;
-  --primary:#0E9AA0; --primary-deep:#0A6E73; --line:#DCE8EA; --mint:#E7F4F3;
-  --warn:#B4541F;
-  --shadow:0 1px 2px rgba(14,42,49,.04), 0 10px 30px rgba(14,42,49,.07);
-  --radius:14px;
+  --bg:#EEF2F9; --surface:#ffffff; --ink:#121826; --muted:#6B7280;
+  --primary:#2F6BED; --primary-deep:#1E50DA; --line:#E6E9F1; --mint:#EAF0FE;
+  --primary-weak:#EAF0FE; --ok:#16A34A; --warn:#B4541F;
+  --shadow:0 6px 24px rgba(20,30,60,.07);
+  --radius:14px; --radius-lg:18px; --radius-sm:10px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -265,3 +265,64 @@ a.card{text-decoration:none;color:inherit}
 .crumbs a:hover{color:var(--primary);text-decoration:underline}
 .crumbs [aria-current="page"]{color:var(--ink);font-weight:500}
 .crumb-sep{color:var(--line)}
+
+
+/* ===================== НОВЫЙ ДИЗАЙН: общий каркас ===================== */
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+.ic{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;width:20px;height:20px}
+
+/* шапка */
+.site-top{position:sticky;top:0;z-index:40}
+.site-header{background:var(--surface);border-bottom:1px solid var(--line)}
+.header-row{display:flex;align-items:center;gap:22px;padding:15px 0}
+.logo{font-family:"Manrope",sans-serif;font-weight:800;font-size:24px;letter-spacing:.06em;color:var(--ink);text-decoration:none;white-space:nowrap}
+.logo span{color:var(--primary)}
+.search{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 16px;color:#9aa3b2}
+.search-ph{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hcontact{display:flex;flex-direction:column;line-height:1.25;text-align:right;white-space:nowrap}
+.hphone{font-weight:700;color:var(--primary);text-decoration:none;font-size:16px}
+.hhours{font-size:12px;color:var(--muted)}
+.hactions{display:flex;align-items:center;gap:18px}
+.acct,.cart{display:inline-flex;align-items:center;gap:8px;cursor:default}
+.acct .ic,.cart .ic{width:24px;height:24px}
+.acct{color:var(--muted)}
+.cart{position:relative;color:var(--primary);font-weight:600}
+.cart-badge{position:absolute;top:-7px;left:13px;background:#EF4444;color:#fff;font-size:11px;font-weight:700;border-radius:999px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* синяя навигация */
+.mainnav{background:var(--bg);padding:8px 0 14px}
+.mainnav-row{display:flex;align-items:center;gap:8px;background:var(--primary);border-radius:16px;padding:9px 12px}
+.nav-catalog{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--primary);font-weight:700;border-radius:10px;padding:9px 16px;text-decoration:none}
+.nav-catalog .ic{width:18px;height:18px}
+.nav-cats{display:flex;align-items:center;gap:2px}
+.nav-cat{position:relative}
+.nav-cat-link{display:inline-flex;align-items:center;gap:6px;color:#fff;text-decoration:none;font-weight:600;font-size:15px;padding:9px 12px;border-radius:9px}
+.nav-cat-link:hover{background:rgba(255,255,255,.15)}
+.nav-cat .caret{width:0;height:0;border:4px solid transparent;border-top-color:rgba(255,255,255,.8);margin-top:3px}
+.nav-dropdown{position:absolute;top:calc(100% + 6px);left:0;min-width:250px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:8px;display:none;z-index:50}
+.nav-cat:hover .nav-dropdown,.nav-cat:focus-within .nav-dropdown{display:block}
+.nav-dropdown ul{list-style:none;margin:0;padding:0}
+.nav-dropdown a{display:block;padding:8px 12px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px}
+.nav-dropdown a:hover{background:var(--primary-weak);color:var(--primary)}
+.nav-links{margin-left:auto;display:flex;align-items:center;gap:18px}
+.nav-stub{color:rgba(255,255,255,.95);font-size:14px;cursor:default;white-space:nowrap}
+
+/* подвал */
+.site-footer{margin-top:48px;border-top:1px solid var(--line);background:var(--surface)}
+.footer-grid{display:grid;grid-template-columns:auto 1fr auto;gap:28px;padding:28px 0;align-items:start}
+.f-copy{color:var(--muted);font-size:14px;white-space:nowrap}
+.f-links{display:flex;flex-direction:column;gap:8px}
+.f-stub{color:var(--muted);font-size:14px;text-decoration:underline;text-decoration-color:var(--line);cursor:default}
+.f-contact{display:flex;flex-direction:column;gap:6px;text-align:right;white-space:nowrap}
+.f-contact a{color:var(--ink);text-decoration:none;font-size:14px}
+
+@media (max-width:900px){
+  .site-top{position:static}
+  .header-row{flex-wrap:wrap;gap:12px 18px;padding:12px 0}
+  .search{order:3;flex-basis:100%}
+  .hcontact{display:none}
+  .mainnav-row{flex-wrap:wrap;gap:6px}
+  .nav-links{display:none}
+  .footer-grid{grid-template-columns:1fr;gap:18px;text-align:left}
+  .f-contact{text-align:left}
+}

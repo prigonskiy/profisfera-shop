@@ -52,6 +52,27 @@ async function fetchList(apiPath) {
 import { esc, stripHtml, mainImage, productMain, crumbs } from "./render-product.js";
 
 /* ---------- общий каркас страницы ---------- */
+// --- новый дизайн: иконки (временные, заменим на фирменные SVG) ---
+const IC = {
+  search: '<svg viewBox="0 0 20 20" class="ic"><circle cx="9" cy="9" r="6"/><line x1="13.5" y1="13.5" x2="18" y2="18"/></svg>',
+  user: '<svg viewBox="0 0 22 22" class="ic"><circle cx="11" cy="7.5" r="3.4"/><path d="M4.5 18.5c0-3.6 3-5.5 6.5-5.5s6.5 1.9 6.5 5.5"/></svg>',
+  cart: '<svg viewBox="0 0 22 22" class="ic"><path d="M2.5 3.5h2.2l2.2 10.5h9.4l2-7.3H6.2"/><circle cx="9" cy="18.5" r="1.4"/><circle cx="16" cy="18.5" r="1.4"/></svg>',
+  grid: '<svg viewBox="0 0 20 20" class="ic"><rect x="3" y="3" width="5.5" height="5.5" rx="1.2"/><rect x="11.5" y="3" width="5.5" height="5.5" rx="1.2"/><rect x="3" y="11.5" width="5.5" height="5.5" rx="1.2"/><rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.2"/></svg>',
+};
+
+// навигация из верхних категорий дерева (с выпадающими подкатегориями)
+let NAV_HTML = "";
+function buildMainNav(tree) {
+  return tree.map((root) => {
+    const kids = root.children || [];
+    const menu = kids.length
+      ? `<div class="nav-dropdown"><ul>${kids.map((c) =>
+          `<li><a href="${SITE_BASE}/c/${c.slug}/">${esc(c.name)}</a></li>`).join("")}</ul></div>`
+      : "";
+    return `<div class="nav-cat"><a class="nav-cat-link" href="${SITE_BASE}/c/${root.slug}/">${esc(root.name)}${kids.length ? '<span class="caret"></span>' : ""}</a>${menu}</div>`;
+  }).join("");
+}
+
 function layout({ title, description, canonical, image, bodyClass, content }) {
   const desc = stripHtml(description).slice(0, 300);
   const og = [
@@ -77,20 +98,31 @@ ${og}
 <link rel="stylesheet" href="${SITE_BASE}/product.css">
 </head>
 <body class="${bodyClass || ""}">
-<header class="topbar">
-  <div class="topbar-inner">
-    <a class="brand" href="${SITE_BASE}/" aria-label="ПрофиСфера — на главную">
-      <img src="${SITE_BASE}/logo.svg" class="logo-img" alt="ПрофиСфера" width="190" height="19">
-      <span class="tag">стоматология · витрина-прототип</span>
-    </a>
-    <nav class="topnav">
-      <a class="navtab" href="${SITE_BASE}/">Каталог</a>
-      <a class="navtab" href="${SITE_BASE}/#brands">Производители</a>
-    </nav>
-    <span class="pim-badge"><span class="dot"></span>данные из PIM в реальном времени</span>
+<div class="site-top">
+<header class="site-header">
+  <div class="wrap header-row">
+    <a class="logo" href="${SITE_BASE}/" aria-label="ПрофиСфера — на главную">PR<span>O</span>FISFERA</a>
+    <div class="search" role="search" aria-label="Поиск (скоро)">${IC.search}<span class="search-ph">Найти по названию или артикулу</span></div>
+    <div class="hcontact"><a class="hphone" href="tel:+79313181319">+7 (931) 318-13-19</a><span class="hhours">ПН-ПТ с 10:00 до 20:00</span></div>
+    <div class="hactions"><span class="acct" title="Личный кабинет — скоро">${IC.user}</span><span class="cart" title="Корзина — скоро">${IC.cart}<span class="cart-t">Корзина</span><b class="cart-badge">1</b></span></div>
   </div>
 </header>
+<nav class="mainnav">
+  <div class="wrap"><div class="mainnav-row">
+    <a class="nav-catalog" href="${SITE_BASE}/">${IC.grid}<span>Каталог</span></a>
+    <div class="nav-cats">${NAV_HTML}</div>
+    <div class="nav-links"><span class="nav-stub">Программа лояльности</span><span class="nav-stub">О компании</span><span class="nav-stub">Доставка и оплата</span></div>
+  </div></div>
+</nav>
+</div>
 ${content}
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="f-copy">© Profisfera, 2026</div>
+    <div class="f-links"><span class="f-stub">Условия программы лояльности</span><span class="f-stub">Политика обработки персональных данных</span><span class="f-stub">Пользовательское соглашение</span><span class="f-stub">Согласие на обработку файлов cookie</span><span class="f-stub">Согласие на обработку персональных данных</span></div>
+    <div class="f-contact"><a href="tel:+79313181319">+7 (931) 318-13-19</a><a href="mailto:info@profisfera.ru">info@profisfera.ru</a></div>
+  </div>
+</footer>
 </body>
 </html>
 `;
@@ -281,6 +313,7 @@ async function main() {
 
   // дерево категорий — заранее: и для крошек товара (путь предков), и для страниц категорий
   const tree = await getJSON("/api/categories/tree/");
+  NAV_HTML = buildMainNav(tree);
   const cats = collectCategories(tree);
   const trailBySlug = {};
   cats.forEach((c) => { trailBySlug[c.slug] = c.trail; });
