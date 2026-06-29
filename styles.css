@@ -207,7 +207,7 @@ a.card{text-decoration:none;color:inherit}
 /* ---- левый сайдбар категории: дерево + фильтры ---- */
 .cat-layout{display:grid;grid-template-columns:260px 1fr;gap:26px;align-items:start}
 .cat-products{min-width:0}
-.cat-sidebar{position:sticky;top:18px;display:flex;flex-direction:column;gap:18px;max-height:calc(100vh - 36px);overflow:auto}
+.cat-sidebar{position:sticky;top:18px;display:flex;flex-direction:column;gap:18px}
 .cat-sidebar-close{display:none}
 .side-title{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin:0 0 8px}
 
@@ -355,7 +355,7 @@ a.card{text-decoration:none;color:inherit}
 /* карточка товара */
 .pcard{display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:var(--radius-lg)}
 .pcard:hover{transform:none;box-shadow:var(--shadow);border-color:var(--line)}
-.pcard .card-img{aspect-ratio:1/1;background:#fff;display:flex;align-items:center;justify-content:center;padding:18px}
+.pcard .card-img{height:210px;flex:none;background:#fff;display:flex;align-items:center;justify-content:center;padding:18px;overflow:hidden}
 .pcard .card-img img{max-width:100%;max-height:100%;object-fit:contain;mix-blend-mode:normal}
 .pcard .card-img .noimg{color:#b8c0cc;font-size:13px}
 .pcard .card-body{display:flex;flex-direction:column;gap:4px;padding:0 16px;flex:1}
