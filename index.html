@@ -22,7 +22,7 @@
 </header>
 <nav class="mainnav">
   <div class="wrap"><div class="mainnav-row">
-    <a class="nav-catalog" href="./" onclick="setView('catalog');return false;"><img src="ic-burger.svg" alt="" width="16" height="12"><span>Каталог</span></a>
+    <button type="button" class="nav-catalog" aria-expanded="false"><img src="ic-burger.svg" alt="" width="16" height="12"><span>Каталог</span></button>
     <div class="nav-cats" id="mainnav-cats"></div>
     <div class="nav-links"><span class="nav-stub">Программа лояльности</span><span class="nav-stub">О компании</span><span class="nav-stub">Доставка и оплата</span></div>
   </div></div>
@@ -72,5 +72,6 @@
 <aside class="drawer" id="drawer" aria-hidden="true"></aside>
 
 <script src="app.js"></script>
+<script src="catalog-menu.js" defer></script>
 </body>
 </html>

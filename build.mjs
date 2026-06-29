@@ -66,14 +66,10 @@ function catIcon(name) {
 // навигация из верхних категорий дерева (с выпадающими подкатегориями)
 let NAV_HTML = "";
 function buildMainNav(tree) {
-  return tree.map((root) => {
-    const kids = root.children || [];
-    const menu = kids.length
-      ? `<div class="nav-dropdown"><ul>${kids.map((c) =>
-          `<li><a href="${SITE_BASE}/c/${c.slug}/">${esc(c.name)}</a></li>`).join("")}</ul></div>`
-      : "";
-    return `<div class="nav-cat"><a class="nav-cat-link" href="${SITE_BASE}/c/${root.slug}/">${catIcon(root.name)}<span>${esc(root.name)}</span>${kids.length ? `<img class="caret" src="${SITE_BASE}/ic-caret.svg" alt="" width="12" height="7">` : ""}</a>${menu}</div>`;
-  }).join("");
+  // Верхняя панель — простые ссылки на верхние категории; вся навигация теперь в кнопке «Каталог».
+  return tree.map((root) =>
+    `<a class="nav-cat-link" href="${SITE_BASE}/c/${root.slug}/">${esc(root.name)}</a>`
+  ).join("");
 }
 
 function layout({ title, description, canonical, image, bodyClass, content }) {
@@ -112,7 +108,7 @@ ${og}
 </header>
 <nav class="mainnav">
   <div class="wrap"><div class="mainnav-row">
-    <a class="nav-catalog" href="${SITE_BASE}/"><img src="${SITE_BASE}/ic-burger.svg" alt="" width="16" height="12"><span>Каталог</span></a>
+    <button type="button" class="nav-catalog" aria-expanded="false"><img src="${SITE_BASE}/ic-burger.svg" alt="" width="16" height="12"><span>Каталог</span></button>
     <div class="nav-cats">${NAV_HTML}</div>
     <div class="nav-links"><span class="nav-stub">Программа лояльности</span><span class="nav-stub">О компании</span><span class="nav-stub">Доставка и оплата</span></div>
   </div></div>
@@ -126,6 +122,7 @@ ${content}
     <div class="f-contact"><a href="tel:+79313181319">+7 (931) 318-13-19</a><a href="mailto:info@profisfera.ru">info@profisfera.ru</a></div>
   </div>
 </footer>
+<script src="${SITE_BASE}/catalog-menu.js" defer></script>
 </body>
 </html>
 `;
@@ -303,7 +300,7 @@ function collectCategories(nodes) {
   return out;
 }
 async function copyStatic() {
-  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js", "ic-user.svg", "ic-cart.svg", "ic-cart-sm.svg", "ic-caret.svg", "ic-burger.svg", "ic-cat-tools.svg", "ic-cat-materials.svg", "ic-cat-equipment.svg", "ic-stock.svg", "ic-delivery.svg", "ic-bonus.svg"]) {
+  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js", "catalog-menu.js", "ic-user.svg", "ic-cart.svg", "ic-cart-sm.svg", "ic-caret.svg", "ic-burger.svg", "ic-cat-tools.svg", "ic-cat-materials.svg", "ic-cat-equipment.svg", "ic-stock.svg", "ic-delivery.svg", "ic-bonus.svg"]) {
     const src = path.join(ROOT, f);
     if (existsSync(src)) await copyFile(src, path.join(OUT, f));
   }
@@ -356,6 +353,7 @@ async function main() {
   const countBySlug = {};
   for (const c of cats) countBySlug[c.slug] = list.filter((p) => c.slugs.includes(p.category)).length;
   await writeFile(path.join(OUT, "counts.json"), JSON.stringify(countBySlug), "utf8");
+  await writeFile(path.join(OUT, "tree.json"), JSON.stringify(tree), "utf8");
 
   // категории (разделы) — cats уже собраны выше
   let nc = 0;

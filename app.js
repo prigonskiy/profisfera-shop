@@ -7,11 +7,7 @@ const CAT_ICON = { "инструменты":"ic-cat-tools.svg", "материа�
 function catIcon(name){ const f = CAT_ICON[(name||"").trim().toLowerCase()]; return f ? `<img class="nav-ic" src="${f}" alt="" width="20" height="20">` : ""; }
 function buildMainnavCats(roots){
   const box = $("#mainnav-cats"); if(!box) return;
-  box.innerHTML = roots.map(root=>{
-    const kids = root.children || [];
-    const menu = kids.length ? `<div class="nav-dropdown"><ul>${kids.map(c=>`<li><a href="c/${encodeURIComponent(c.slug)}/">${esc(c.name)}</a></li>`).join("")}</ul></div>` : "";
-    return `<div class="nav-cat"><a class="nav-cat-link" href="c/${encodeURIComponent(root.slug)}/">${catIcon(root.name)}<span>${esc(root.name)}</span>${kids.length?`<img class="caret" src="ic-caret.svg" alt="" width="12" height="7">`:""}</a>${menu}</div>`;
-  }).join("");
+  box.innerHTML = roots.map(root=>`<a class="nav-cat-link" href="c/${encodeURIComponent(root.slug)}/">${esc(root.name)}</a>`).join("");
 }
 
 const $ = (s,r=document)=>r.querySelector(s);
