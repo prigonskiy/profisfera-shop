@@ -134,11 +134,11 @@ ${content}
 /* ---------- плитка товара (ссылка) ---------- */
 function productTile(p) {
   const ph = p.thumbnail
-    ? `<div class="ph"><img src="${esc(p.thumbnail)}" alt="${esc(p.name)}" loading="lazy"></div>`
-    : `<div class="ph"><div class="noimg">без фото</div></div>`;
-  const brand = p.brand ? `<div class="kr">${esc(p.brand)}</div>` : "";
-  const ds = p.short_description ? `<div class="ds">${esc(p.short_description)}</div>` : "";
-  return `<a class="card" href="${SITE_BASE}/product/${esc(p.slug)}/">${ph}<div class="body">${brand}<div class="nm">${esc(p.name)}</div>${ds}</div></a>`;
+    ? `<div class="card-img"><img src="${esc(p.thumbnail)}" alt="${esc(p.name)}" loading="lazy"></div>`
+    : `<div class="card-img"><span class="noimg">без фото</span></div>`;
+  const sku = p.sku ? `<div class="card-sku">Артикул: ${esc(p.sku)}</div>` : "";
+  const brand = p.brand ? `<div class="card-brand">${esc(p.brand)}</div>` : "";
+  return `<a class="card pcard" href="${SITE_BASE}/product/${esc(p.slug)}/">${ph}<div class="card-body">${sku}<div class="card-price">Цена по запросу</div><div class="card-name">${esc(p.name)}</div>${brand}<div class="card-delivery"><img src="${SITE_BASE}/ic-delivery.svg" alt="" width="14" height="14"><span>Доставка от 1 дня</span></div></div><span class="btn-cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart-sm.svg" alt="" width="14" height="13"><span>В корзину</span></span></a>`;
 }
 function grid(products, emptyText) {
   if (!products.length) return `<div class="state"><h3>Товаров пока нет</h3><p>${esc(emptyText || "")}</p></div>`;
@@ -225,7 +225,7 @@ function categoryPage(cat, products, filterData, tree, counts) {
 
   const openSet = new Set((cat.trail || []).map((t) => t.slug));
   const nav = `<nav class="cat-nav" aria-label="Категории">
-      <div class="side-title">Категории</div>
+      <div class="side-title">Каталог</div>
       <ul>${catNav(tree, cat.slug, counts, openSet)}</ul>
     </nav>`;
   const filtersBlock = hasFilters ? `<div class="filters" id="filters"></div>` : "";
@@ -247,7 +247,7 @@ function categoryPage(cat, products, filterData, tree, counts) {
 
   const content = `<main class="page-shell">
   ${crumbs(trailItems)}
-  <div class="main-head"><h1>${esc(cat.name)}</h1><div class="count" id="cat-count"><b>${products.length}</b> товаров</div></div>
+  <div class="main-head"><div class="main-head-l"><h1>${esc(cat.name)}</h1><div class="count" id="cat-count"><b>${products.length}</b> товаров</div></div><div class="sort-stub" title="Сортировка — скоро"><span>По популярности</span><i class="caret-down"></i></div></div>
   ${mobilebar}
   <div class="cat-layout">
     ${sidebar}
