@@ -426,3 +426,9 @@ a.card{text-decoration:none;color:inherit}
 
 /* ===== главная без сайдбара: полноширинная витрина ===== */
 .home-main{padding-top:22px;padding-bottom:60px}
+
+/* ===== сжатая навигация по категории (шаг 3) ===== */
+.cat-nav .cn-up{display:block;color:var(--muted);text-decoration:none;font-size:13px;padding:4px 8px;margin-bottom:6px}
+.cat-nav .cn-up:hover{color:var(--primary)}
+.cat-nav .cn-head a{font-weight:600}
+.cat-nav .cn-list{padding-left:10px;margin-top:2px}

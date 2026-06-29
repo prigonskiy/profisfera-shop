@@ -211,6 +211,45 @@ function catNav(nodes, currentSlug, counts, openSet) {
   }).join("");
 }
 
+function findNode(nodes, slug) {
+  for (const n of nodes || []) {
+    if (n.slug === slug) return n;
+    const f = findNode(n.children, slug);
+    if (f) return f;
+  }
+  return null;
+}
+// Сжатая навигация по категории: ↑ на уровень выше, текущая категория и её подкатегории
+// (для листа без детей — показываем соседей: подкатегории родителя, текущая подсвечена).
+function catNavCompact(cat, tree, counts) {
+  const trail = cat.trail || [];
+  const current = findNode(tree, cat.slug) || { slug: cat.slug, name: cat.name, children: [] };
+  const hasKids = current.children && current.children.length;
+  let focusNode, focusIdx;
+  if (hasKids) { focusNode = current; focusIdx = trail.length - 1; }
+  else if (trail.length >= 2) { focusNode = findNode(tree, trail[trail.length - 2].slug); focusIdx = trail.length - 2; }
+  else { focusNode = current; focusIdx = trail.length - 1; }
+  focusNode = focusNode || current;
+  const up = focusIdx - 1 >= 0 ? trail[focusIdx - 1] : null;
+  const upHtml = up
+    ? `<a class="cn-up" href="${SITE_BASE}/c/${up.slug}/">\u2190 ${esc(up.name)}</a>`
+    : `<a class="cn-up" href="${SITE_BASE}/">\u2190 Все категории</a>`;
+  const link = (n) => {
+    const c = counts[n.slug];
+    const cnt = c != null ? `<span class="cat-count">${c}</span>` : "";
+    const cur = n.slug === cat.slug ? ' class="current" aria-current="page"' : "";
+    return `<a href="${SITE_BASE}/c/${n.slug}/"${cur}>${esc(n.name)}${cnt}</a>`;
+  };
+  const items = (focusNode.children || []).map((ch) => `<li>${link(ch)}</li>`).join("");
+  const list = items ? `<ul class="cn-list">${items}</ul>` : "";
+  return `<nav class="cat-nav" aria-label="Категория">
+      <div class="side-title">Категория</div>
+      ${upHtml}
+      <div class="cn-head">${link(focusNode)}</div>
+      ${list}
+    </nav>`;
+}
+
 function categoryPage(cat, products, filterData, tree, counts) {
   const canonical = `${SITE_BASE}/c/${cat.slug}/`;
   const gridHtml = products.length
@@ -220,11 +259,7 @@ function categoryPage(cat, products, filterData, tree, counts) {
     (filterData.filters && filterData.filters.length) ||
     (filterData.brands && filterData.brands.length > 1);
 
-  const openSet = new Set((cat.trail || []).map((t) => t.slug));
-  const nav = `<nav class="cat-nav" aria-label="Категории">
-      <div class="side-title">Каталог</div>
-      <ul>${catNav(tree, cat.slug, counts, openSet)}</ul>
-    </nav>`;
+  const nav = catNavCompact(cat, tree, counts);
   const filtersBlock = hasFilters ? `<div class="filters" id="filters"></div>` : "";
   const sidebar = `<aside class="cat-sidebar" id="cat-sidebar">
       <button type="button" class="cat-sidebar-close" aria-label="Закрыть">×</button>
