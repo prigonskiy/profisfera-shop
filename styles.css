@@ -371,13 +371,16 @@ a.card{text-decoration:none;color:inherit}
 
 /* ===== главная: баннер-заглушка + карточный сайдбар ===== */
 .hero{max-width:1200px;margin:0 auto;padding:10px 20px 0}
-.hero-inner{background:linear-gradient(120deg,var(--primary),#0b3aa6);border-radius:var(--radius-lg);color:#fff;padding:44px 48px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;min-height:230px}
-.hero-title{font-size:32px;font-weight:800;line-height:1.12;max-width:560px}
-.hero-sub{font-size:16px;line-height:1.5;opacity:.92;max-width:520px;margin:14px 0 22px}
-.hero-btn{display:inline-block;background:rgba(255,255,255,.18);color:#fff;padding:12px 24px;border-radius:10px;font-weight:600;cursor:default}
-.hero-dots{display:flex;gap:8px;flex:none;padding-bottom:4px}
-.hero-dots .dot{width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.45)}
-.hero-dots .dot.active{width:24px;background:#fff}
+.hero-inner{position:relative;overflow:hidden;display:flex;align-items:center;min-height:300px;padding:44px 56px;color:#fff;border-radius:var(--radius-lg);background:linear-gradient(100deg,#0E4FD6 0%,#1462FF 70%,#2768ff 100%)}
+.hero-text{position:relative;z-index:2;max-width:560px}
+.hero-title{font-size:40px;font-weight:800;line-height:1.1;margin:0}
+.hero-sub{font-size:16px;line-height:1.5;color:rgba(255,255,255,.82);margin:16px 0 26px;max-width:440px}
+.hero-btn{display:inline-block;background:rgba(255,255,255,.14);color:#fff;padding:13px 30px;border-radius:10px;font-weight:600;font-size:15px;cursor:default}
+.hero-art{position:absolute;right:0;bottom:0;z-index:1;height:100%;width:auto;max-width:60%;object-fit:contain;object-position:bottom right;pointer-events:none}
+.hero-next{position:absolute;right:18px;top:50%;transform:translateY(-50%);z-index:3;width:44px;height:44px;border-radius:50%;border:0;background:#fff;color:var(--primary);display:grid;place-items:center;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.14)}
+.hero-dots{position:absolute;left:56px;bottom:26px;z-index:3;display:flex;gap:8px}
+.hero-dots .dot{width:9px;height:9px;border-radius:999px;background:rgba(255,255,255,.4)}
+.hero-dots .dot.active{width:26px;background:#fff}
 
 /* сайдбар главной — белые карточки */
 .sidebar{display:flex;flex-direction:column;gap:16px}
@@ -390,8 +393,18 @@ a.card{text-decoration:none;color:inherit}
 .main-head-l{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 
 @media (max-width:900px){
-  .hero-inner{flex-direction:column;align-items:flex-start;padding:30px}
-  .hero-title{font-size:25px}
+  .hero-inner{min-height:240px;padding:34px 36px}
+  .hero-title{font-size:30px}
+  .hero-sub{margin-bottom:22px}
+  .hero-art{max-width:48%}
+  .hero-dots{left:36px}
+}
+@media (max-width:600px){
+  .hero-inner{min-height:auto;padding:28px 24px 54px}
+  .hero-title{font-size:24px}
+  .hero-sub{font-size:14px;margin:12px 0 20px}
+  .hero-art,.hero-next{display:none}
+  .hero-dots{left:24px;bottom:20px}
 }
 
 /* ===== мегаменю «Каталог» (общий компонент) ===== */
