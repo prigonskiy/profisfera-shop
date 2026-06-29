@@ -368,3 +368,28 @@ a.card{text-decoration:none;color:inherit}
 .pcard .btn-cart{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 16px 16px;padding:12px;background:var(--primary);color:#fff;font-weight:600;font-size:15px;border-radius:12px}
 .pcard .btn-cart img{display:block}
 .pcard:hover .btn-cart{background:var(--primary-deep)}
+
+/* ===== главная: баннер-заглушка + карточный сайдбар ===== */
+.hero{max-width:1200px;margin:0 auto;padding:10px 20px 0}
+.hero-inner{background:linear-gradient(120deg,var(--primary),#0b3aa6);border-radius:var(--radius-lg);color:#fff;padding:44px 48px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;min-height:230px}
+.hero-title{font-size:32px;font-weight:800;line-height:1.12;max-width:560px}
+.hero-sub{font-size:16px;line-height:1.5;opacity:.92;max-width:520px;margin:14px 0 22px}
+.hero-btn{display:inline-block;background:rgba(255,255,255,.18);color:#fff;padding:12px 24px;border-radius:10px;font-weight:600;cursor:default}
+.hero-dots{display:flex;gap:8px;flex:none;padding-bottom:4px}
+.hero-dots .dot{width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.45)}
+.hero-dots .dot.active{width:24px;background:#fff}
+
+/* сайдбар главной — белые карточки */
+.sidebar{display:flex;flex-direction:column;gap:16px}
+.side-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 18px}
+.side-card .side-title{font-weight:700;font-size:15px;margin-bottom:12px}
+.side-card #audiences,.side-card #directions{display:flex;gap:7px;flex-wrap:wrap}
+.side-card .tree a{padding:7px 8px}
+.side-card .tree a:hover{background:var(--bg)}
+
+.main-head-l{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+
+@media (max-width:900px){
+  .hero-inner{flex-direction:column;align-items:flex-start;padding:30px}
+  .hero-title{font-size:25px}
+}

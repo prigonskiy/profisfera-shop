@@ -6,44 +6,67 @@
 <title>ПрофиСфера — витрина (прототип)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="page-home">
 
-<header class="topbar">
-  <div class="topbar-inner">
-    <a class="brand" href="./" onclick="setView('catalog');return false;" aria-label="ПрофиСфера — на главную">
-      <img src="logo.svg" class="logo-img" alt="ПрофиСфера" width="190" height="19">
-      <span class="tag">стоматология · витрина-прототип</span>
-    </a>
-    <nav class="topnav">
-      <a class="navtab" data-view="catalog" href="./">Каталог</a>
-      <a class="navtab" data-view="brands" href="#brands">Производители</a>
-    </nav>
-    <span class="pim-badge"><span class="dot"></span>данные из PIM в реальном времени</span>
+<div class="site-top">
+<header class="site-header">
+  <div class="wrap header-row">
+    <a class="logo" href="./" onclick="setView('catalog');return false;" aria-label="ПрофиСфера — на главную"><img class="logo-img" src="logo.svg" alt="ПрофиСфера" height="24"></a>
+    <div class="search" role="search" aria-label="Поиск (скоро)"><span class="search-ph">Найти по названию или артикулу</span></div>
+    <div class="hcontact"><a class="hphone" href="tel:+79313181319">+7 (931) 318-13-19</a><span class="hhours">ПН-ПТ с 10:00 до 20:00</span></div>
+    <div class="hactions"><span class="acct" title="Личный кабинет — скоро"><img src="ic-user.svg" alt="" width="24" height="24"></span><span class="cart" title="Корзина — скоро"><img src="ic-cart.svg" alt="" width="24" height="24"><span class="cart-t">Корзина</span><b class="cart-badge">1</b></span></div>
   </div>
-  <div class="audiences" id="audiences"></div>
-  <div class="directions" id="directions"></div>
-  <div style="height:14px"></div>
 </header>
+<nav class="mainnav">
+  <div class="wrap"><div class="mainnav-row">
+    <a class="nav-catalog" href="./" onclick="setView('catalog');return false;"><img src="ic-burger.svg" alt="" width="16" height="12"><span>Каталог</span></a>
+    <div class="nav-cats" id="mainnav-cats"></div>
+    <div class="nav-links"><span class="nav-stub">Программа лояльности</span><span class="nav-stub">О компании</span><span class="nav-stub">Доставка и оплата</span></div>
+  </div></div>
+</nav>
+</div>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="hero-title">Добро пожаловать в ПрофиСферу</div>
+      <p class="hero-sub">Стоматологические материалы и инструменты для клиник и зуботехнических лабораторий. Раздел акций скоро появится здесь.</p>
+      <span class="hero-btn">Подробнее</span>
+    </div>
+    <div class="hero-dots"><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  </div>
+</section>
 
 <div class="shell">
   <aside class="sidebar" id="sidebar">
-    <h2>Категории</h2>
-    <ul class="tree" id="tree"></ul>
+    <div class="side-card">
+      <div class="side-title">Каталог</div>
+      <ul class="tree" id="tree"></ul>
+    </div>
+    <div class="side-card"><div class="side-title">Аудитория</div><div id="audiences"></div></div>
+    <div class="side-card"><div class="side-title">Направление</div><div id="directions"></div></div>
   </aside>
 
   <main>
     <div id="brandhero"></div>
     <div class="main-head">
-      <h1 id="heading">Каталог</h1>
-      <div class="count" id="count"></div>
+      <div class="main-head-l"><h1 id="heading">Каталог</h1><div class="count" id="count"></div></div>
     </div>
     <div class="grid" id="grid"></div>
     <button class="more" id="more" style="display:none">Показать ещё</button>
   </main>
 </div>
+
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="f-copy">© Profisfera, 2026</div>
+    <div class="f-links"><span class="f-stub">Условия программы лояльности</span><span class="f-stub">Политика обработки персональных данных</span><span class="f-stub">Пользовательское соглашение</span><span class="f-stub">Согласие на обработку файлов cookie</span><span class="f-stub">Согласие на обработку персональных данных</span></div>
+    <div class="f-contact"><a href="tel:+79313181319">+7 (931) 318-13-19</a><a href="mailto:info@profisfera.ru">info@profisfera.ru</a></div>
+  </div>
+</footer>
 
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true"></aside>

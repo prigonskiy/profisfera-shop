@@ -2,6 +2,17 @@ const API_BASE = "https://profisfera-pim.ru";
 
 const api = (p) => API_BASE.replace(/\/$/,"") + p;
 const state = { view:"catalog", brand:null, brands:[], audience:null, direction:null, category:null, menu:[], next:null };
+let catCounts = {};
+const CAT_ICON = { "инструменты":"ic-cat-tools.svg", "материалы":"ic-cat-materials.svg", "оборудование":"ic-cat-equipment.svg" };
+function catIcon(name){ const f = CAT_ICON[(name||"").trim().toLowerCase()]; return f ? `<img class="nav-ic" src="${f}" alt="" width="20" height="20">` : ""; }
+function buildMainnavCats(roots){
+  const box = $("#mainnav-cats"); if(!box) return;
+  box.innerHTML = roots.map(root=>{
+    const kids = root.children || [];
+    const menu = kids.length ? `<div class="nav-dropdown"><ul>${kids.map(c=>`<li><a href="c/${encodeURIComponent(c.slug)}/">${esc(c.name)}</a></li>`).join("")}</ul></div>` : "";
+    return `<div class="nav-cat"><a class="nav-cat-link" href="c/${encodeURIComponent(root.slug)}/">${catIcon(root.name)}<span>${esc(root.name)}</span>${kids.length?`<img class="caret" src="ic-caret.svg" alt="" width="12" height="7">`:""}</a>${menu}</div>`;
+  }).join("");
+}
 
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (t,c)=>{const e=document.createElement(t); if(c) e.className=c; return e;};
@@ -55,10 +66,12 @@ function chip(label, active, on){
 /* ---------- категории (дерево-хребет) ---------- */
 async function loadTree(){
   const roots = await fetchJSON(api("/api/categories/tree/"));
+  try{ catCounts = await fetchJSON("counts.json"); }catch(_){ catCounts = {}; }
   const ul=$("#tree"); ul.innerHTML="";
   const all=el("li"); all.appendChild(treeBtn({name:"Все категории",id:null}, true));
   ul.appendChild(all);
   roots.forEach(c=>ul.appendChild(treeNode(c)));
+  buildMainnavCats(roots);
 }
 function treeNode(cat){
   const li=el("li"); li.appendChild(treeBtn(cat,false));
@@ -71,6 +84,7 @@ function treeBtn(cat, isReset){
   const a=el("a", isReset?"reset":"");
   a.textContent=cat.name;
   a.href = isReset ? "./" : ("c/"+encodeURIComponent(cat.slug)+"/");
+  if(!isReset && catCounts && catCounts[cat.slug]!=null){ const n=el("span","tree-count"); n.textContent=catCounts[cat.slug]; a.appendChild(n); }
   return a;
 }
 
@@ -187,16 +201,13 @@ async function loadProducts(reset){
   }
 }
 function card(p){
-  const c=el("a","card"); c.href="product/"+encodeURIComponent(p.slug)+"/";
-  const ph=el("div","ph");
-  if(p.thumbnail){ const im=el("img"); im.src=p.thumbnail; im.alt=p.name; im.loading="lazy"; ph.appendChild(im); }
-  else { const n=el("div","noimg"); n.textContent="без фото"; ph.appendChild(n); }
-  c.appendChild(ph);
-  const b=el("div","body");
-  if(p.brand){ const kr=el("div","kr"); kr.textContent=p.brand; b.appendChild(kr); }
-  const nm=el("div","nm"); nm.textContent=p.name; b.appendChild(nm);
-  if(p.short_description){ const ds=el("div","ds"); ds.textContent=p.short_description; b.appendChild(ds); }
-  c.appendChild(b);
+  const c=el("a","card pcard"); c.href="product/"+encodeURIComponent(p.slug)+"/";
+  const ph = p.thumbnail
+    ? `<div class="card-img"><img src="${esc(p.thumbnail)}" alt="${esc(p.name)}" loading="lazy"></div>`
+    : `<div class="card-img"><span class="noimg">без фото</span></div>`;
+  const art = p.manufacturer_sku ? `<div class="card-sku">Артикул: ${esc(p.manufacturer_sku)}</div>` : "";
+  const brand = p.brand ? `<div class="card-brand">${esc(p.brand)}</div>` : "";
+  c.innerHTML = ph + `<div class="card-body">${art}<div class="card-price">Цена по запросу</div><div class="card-name">${esc(p.name)}</div>${brand}<div class="card-delivery"><img src="ic-delivery.svg" alt="" width="14" height="14"><span>Доставка от 1 дня</span></div></div><span class="btn-cart" title="Корзина — скоро"><img src="ic-cart-sm.svg" alt="" width="14" height="13"><span>В корзину</span></span>`;
   return c;
 }
 function emptyState(){
