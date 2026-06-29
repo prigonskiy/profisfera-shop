@@ -61,12 +61,8 @@ function chip(label, active, on){
 
 /* ---------- категории (дерево-хребет) ---------- */
 async function loadTree(){
+  // дерево теперь живёт в мегаменю «Каталог»; на главной из него строим только верхние ссылки навбара
   const roots = await fetchJSON(api("/api/categories/tree/"));
-  try{ catCounts = await fetchJSON("counts.json"); }catch(_){ catCounts = {}; }
-  const ul=$("#tree"); ul.innerHTML="";
-  const all=el("li"); all.appendChild(treeBtn({name:"Все категории",id:null}, true));
-  ul.appendChild(all);
-  roots.forEach(c=>ul.appendChild(treeNode(c)));
   buildMainnavCats(roots);
 }
 function treeNode(cat){
@@ -110,18 +106,11 @@ function queryString(){
 function setView(v){
   state.view = v;
   if(v!=="brand") state.brand = null;
-  document.querySelectorAll(".navtab").forEach(b=>{
-    const active = b.dataset.view===v || (v==="brand" && b.dataset.view==="brands");
-    b.setAttribute("aria-pressed", active);
-  });
-  const isCat = v==="catalog";
-  $("#audiences").style.display = isCat ? "" : "none";
-  $("#directions").style.display = isCat ? "" : "none";
-  $(".shell").classList.toggle("full", !isCat);
-  $("#brandhero").innerHTML = "";
-  $("#more").style.display = "none";
-  if(v==="catalog"){ $("#heading").textContent = headingText(); loadProducts(true); }
-  else if(v==="brands"){ $("#heading").textContent = "Производители"; loadBrands(); }
+  const bh=$("#brandhero"); if(bh) bh.innerHTML = "";
+  const more=$("#more"); if(more) more.style.display = "none";
+  const h=$("#heading");
+  if(v==="catalog"){ if(h) h.textContent = "Популярные товары"; loadProducts(true); }
+  else if(v==="brands"){ if(h) h.textContent = "Производители"; loadBrands(); }
   // для v==="brand" наполнение делает openBrand()
 }
 
@@ -140,6 +129,7 @@ async function loadBrands(){
   try{
     const data = await fetchJSON(api("/api/brands/"));
     const items = data.results || data;
+    if(reset && state.view==="catalog") shuffle(items);   // главная = случайная витрина «топ-товаров» (бизнес-логика позже)
     state.brands = items;
     grid.innerHTML="";
     $("#count").innerHTML = "<b>"+items.length+"</b> производителей";
@@ -180,6 +170,7 @@ async function openBrand(slug){
     loadProducts(true);   // queryString() вернёт brand=<id>
   }catch(e){ hero.innerHTML=""; $("#grid").innerHTML=""; $("#grid").appendChild(errorState(e)); }
 }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 async function loadProducts(reset){
   const grid=$("#grid");
   if(reset){ grid.innerHTML=""; for(let i=0;i<6;i++){const s=el("div","skel");grid.appendChild(s);} $("#more").style.display="none"; }
@@ -356,7 +347,7 @@ $("#more").onclick=()=>loadProducts(false);
     history.replaceState(null,"",a.getAttribute("href"));     // адрес отражает раздел
   });
   try{
-    await Promise.all([loadMenu(), loadTree()]);
+    await loadTree();
   }catch(e){ /* меню/дерево могли не загрузиться — товары покажут ошибку сами */ }
-  setView(location.hash==="#brands" ? "brands" : "catalog");
+  setView("catalog");
 })();
