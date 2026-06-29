@@ -52,13 +52,16 @@ async function fetchList(apiPath) {
 import { esc, stripHtml, mainImage, productMain, crumbs } from "./render-product.js";
 
 /* ---------- общий каркас страницы ---------- */
-// --- новый дизайн: иконки (временные, заменим на фирменные SVG) ---
-const IC = {
-  search: '<svg viewBox="0 0 20 20" class="ic"><circle cx="9" cy="9" r="6"/><line x1="13.5" y1="13.5" x2="18" y2="18"/></svg>',
-  user: '<svg viewBox="0 0 22 22" class="ic"><circle cx="11" cy="7.5" r="3.4"/><path d="M4.5 18.5c0-3.6 3-5.5 6.5-5.5s6.5 1.9 6.5 5.5"/></svg>',
-  cart: '<svg viewBox="0 0 22 22" class="ic"><path d="M2.5 3.5h2.2l2.2 10.5h9.4l2-7.3H6.2"/><circle cx="9" cy="18.5" r="1.4"/><circle cx="16" cy="18.5" r="1.4"/></svg>',
-  grid: '<svg viewBox="0 0 20 20" class="ic"><rect x="3" y="3" width="5.5" height="5.5" rx="1.2"/><rect x="11.5" y="3" width="5.5" height="5.5" rx="1.2"/><rect x="3" y="11.5" width="5.5" height="5.5" rx="1.2"/><rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.2"/></svg>',
+// --- иконки разделов навигации (по названию верхней категории) ---
+const CAT_ICON = {
+  "инструменты": "ic-cat-tools.svg",
+  "материалы": "ic-cat-materials.svg",
+  "оборудование": "ic-cat-equipment.svg",
 };
+function catIcon(name) {
+  const f = CAT_ICON[(name || "").trim().toLowerCase()];
+  return f ? `<img class="nav-ic" src="${SITE_BASE}/${f}" alt="" width="20" height="20">` : "";
+}
 
 // навигация из верхних категорий дерева (с выпадающими подкатегориями)
 let NAV_HTML = "";
@@ -69,7 +72,7 @@ function buildMainNav(tree) {
       ? `<div class="nav-dropdown"><ul>${kids.map((c) =>
           `<li><a href="${SITE_BASE}/c/${c.slug}/">${esc(c.name)}</a></li>`).join("")}</ul></div>`
       : "";
-    return `<div class="nav-cat"><a class="nav-cat-link" href="${SITE_BASE}/c/${root.slug}/">${esc(root.name)}${kids.length ? '<span class="caret"></span>' : ""}</a>${menu}</div>`;
+    return `<div class="nav-cat"><a class="nav-cat-link" href="${SITE_BASE}/c/${root.slug}/">${catIcon(root.name)}<span>${esc(root.name)}</span>${kids.length ? `<img class="caret" src="${SITE_BASE}/ic-caret.svg" alt="" width="12" height="7">` : ""}</a>${menu}</div>`;
   }).join("");
 }
 
@@ -93,7 +96,7 @@ ${desc ? `<meta name="description" content="${esc(desc)}">` : ""}
 ${og}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="${SITE_BASE}/styles.css">
 <link rel="stylesheet" href="${SITE_BASE}/product.css">
 </head>
@@ -101,15 +104,15 @@ ${og}
 <div class="site-top">
 <header class="site-header">
   <div class="wrap header-row">
-    <a class="logo" href="${SITE_BASE}/" aria-label="ПрофиСфера — на главную">PR<span>O</span>FISFERA</a>
-    <div class="search" role="search" aria-label="Поиск (скоро)">${IC.search}<span class="search-ph">Найти по названию или артикулу</span></div>
+    <a class="logo" href="${SITE_BASE}/" aria-label="ПрофиСфера — на главную"><img class="logo-img" src="${SITE_BASE}/logo.svg" alt="ПрофиСфера" height="24"></a>
+    <div class="search" role="search" aria-label="Поиск (скоро)"><span class="search-ph">Найти по названию или артикулу</span></div>
     <div class="hcontact"><a class="hphone" href="tel:+79313181319">+7 (931) 318-13-19</a><span class="hhours">ПН-ПТ с 10:00 до 20:00</span></div>
-    <div class="hactions"><span class="acct" title="Личный кабинет — скоро">${IC.user}</span><span class="cart" title="Корзина — скоро">${IC.cart}<span class="cart-t">Корзина</span><b class="cart-badge">1</b></span></div>
+    <div class="hactions"><span class="acct" title="Личный кабинет — скоро"><img src="${SITE_BASE}/ic-user.svg" alt="" width="24" height="24"></span><span class="cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart.svg" alt="" width="24" height="24"><span class="cart-t">Корзина</span><b class="cart-badge">1</b></span></div>
   </div>
 </header>
 <nav class="mainnav">
   <div class="wrap"><div class="mainnav-row">
-    <a class="nav-catalog" href="${SITE_BASE}/">${IC.grid}<span>Каталог</span></a>
+    <a class="nav-catalog" href="${SITE_BASE}/"><img src="${SITE_BASE}/ic-burger.svg" alt="" width="16" height="12"><span>Каталог</span></a>
     <div class="nav-cats">${NAV_HTML}</div>
     <div class="nav-links"><span class="nav-stub">Программа лояльности</span><span class="nav-stub">О компании</span><span class="nav-stub">Доставка и оплата</span></div>
   </div></div>
@@ -300,7 +303,7 @@ function collectCategories(nodes) {
   return out;
 }
 async function copyStatic() {
-  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js"]) {
+  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js", "ic-user.svg", "ic-cart.svg", "ic-cart-sm.svg", "ic-caret.svg", "ic-burger.svg", "ic-cat-tools.svg", "ic-cat-materials.svg", "ic-cat-equipment.svg", "ic-stock.svg", "ic-delivery.svg", "ic-bonus.svg"]) {
     const src = path.join(ROOT, f);
     if (existsSync(src)) await copyFile(src, path.join(OUT, f));
   }
