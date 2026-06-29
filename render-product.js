@@ -62,20 +62,24 @@ export function productMain(p, SITE_BASE, categoryTrail) {
   if (p.brand && p.brand.name) info += `<a class="p-brand" href="${SITE_BASE}/brand/${esc(p.brand.slug)}/">${esc(p.brand.name)}</a>`;
   if (p.short_description) info += `<p class="plede">${esc(p.short_description)}</p>`;
 
-  // варианты по уровням (Тип, Цвет, …) — из p.group
-  if (p.group && p.group.variants && p.group.variants.length > 1 && (p.group.levels || []).length) {
+  // варианты — из p.group. Сначала по уровням (Тип/Цвет); если уровней нет
+  // или значения не заполнены — показываем серию плоским списком (не теряем блок).
+  if (p.group && p.group.variants && p.group.variants.length > 1) {
     const current = p.group.variants.find((v) => v.is_current) || {};
-    (p.group.levels || []).forEach((lvl) => {
-      const lvlName = lvl.name;
+    const levels = p.group.levels || [];
+    let vrows = "";
+    levels.forEach((lvl) => {
+      const lvlName = lvl && lvl.name;
+      if (!lvlName) return;
       const seen = [];
       const byVal = {};
       p.group.variants.forEach((v) => {
         const val = v.levels ? v.levels[lvlName] : undefined;
-        if (val != null && !Object.prototype.hasOwnProperty.call(byVal, val)) { byVal[val] = v; seen.push(val); }
+        if (val != null && val !== "" && !Object.prototype.hasOwnProperty.call(byVal, val)) { byVal[val] = v; seen.push(val); }
       });
       if (!seen.length) return;
       const curVal = current.levels ? current.levels[lvlName] : undefined;
-      info += `<div class="p-variant"><div class="p-vlabel">${esc(lvlName)}</div><div class="p-opts">` +
+      vrows += `<div class="p-variant"><div class="p-vlabel">${esc(lvlName)}</div><div class="p-opts">` +
         seen.map((val) => {
           const v = byVal[val];
           return val === curVal
@@ -83,6 +87,17 @@ export function productMain(p, SITE_BASE, categoryTrail) {
             : `<a class="p-opt" href="${SITE_BASE}/product/${esc(v.slug)}/">${esc(val)}</a>`;
         }).join("") + `</div></div>`;
     });
+    if (!vrows) {
+      const label = p.group.name ? `Серия «${esc(p.group.name)}»` : "Другие варианты";
+      vrows = `<div class="p-variant"><div class="p-vlabel">${label}</div><div class="p-opts">` +
+        p.group.variants.map((v) => {
+          const t = esc(v.label || v.name || "—");
+          return v.is_current
+            ? `<span class="p-opt active">${t}</span>`
+            : `<a class="p-opt" href="${SITE_BASE}/product/${esc(v.slug)}/">${t}</a>`;
+        }).join("") + `</div></div>`;
+    }
+    info += vrows;
   }
 
   // характеристики + идентификаторы

@@ -398,12 +398,12 @@ a.card{text-decoration:none;color:inherit}
 .nav-catalog{border:0;cursor:pointer;font-family:inherit;font-size:15px}
 .nav-catalog.open img{display:none}
 .nav-catalog.open::before{content:"\2715";font-size:13px;font-weight:700;line-height:1;width:16px;text-align:center}
-.catalog-mega{position:fixed;inset:0;z-index:60}
+.catalog-mega{position:fixed;left:0;right:0;top:var(--cm-top,110px);bottom:0;z-index:39}
 .catalog-mega[hidden]{display:none}
-.catalog-mega-backdrop{position:absolute;left:0;right:0;bottom:0;top:var(--cm-top,110px);background:rgba(18,24,38,.42)}
-.catalog-mega-panel{position:absolute;left:0;right:0;top:var(--cm-top,110px);background:var(--surface);
+.catalog-mega-backdrop{position:absolute;inset:0;background:rgba(18,24,38,.42)}
+.catalog-mega-panel{position:absolute;left:0;right:0;top:0;background:var(--surface);
   border-top:1px solid var(--line);box-shadow:0 18px 34px rgba(18,24,38,.16);
-  max-height:calc(100vh - var(--cm-top,110px));overflow:auto}
+  max-height:100%;overflow:auto}
 .cm-grid{display:grid;grid-template-columns:248px minmax(0,1fr);gap:30px;padding:22px 20px 28px}
 .cm-roots{display:flex;flex-direction:column;gap:2px;border-right:1px solid var(--line);padding-right:14px}
 .cm-root{display:block;padding:10px 12px;border-radius:10px;color:var(--ink);text-decoration:none;font-size:14px;font-weight:500}
