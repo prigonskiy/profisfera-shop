@@ -21,13 +21,14 @@
     mega.hidden = true;
     mega.innerHTML =
       '<div class="catalog-mega-backdrop"></div>' +
-      '<div class="catalog-mega-panel"><div class="wrap cm-grid">' +
+      '<div class="catalog-mega-panel"><button type="button" class="cm-close" aria-label="Закрыть каталог">✕</button><div class="wrap cm-grid">' +
       '<nav class="cm-roots"></nav><div class="cm-cols"></div>' +
       '</div></div>';
     document.body.appendChild(mega);
     rootsBox = mega.querySelector(".cm-roots");
     colsBox = mega.querySelector(".cm-cols");
     mega.querySelector(".catalog-mega-backdrop").addEventListener("click", close);
+    mega.querySelector(".cm-close").addEventListener("click", close);
     // наведение/тап по корню — переключает правую панель; сама ссылка ведёт в раздел
     rootsBox.addEventListener("mouseover", function (e) {
       var a = e.target.closest ? e.target.closest(".cm-root") : null;
