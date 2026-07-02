@@ -223,14 +223,31 @@
         });
 
       } else { // select_checkbox
-        var opts = d.options.map(function (opt) {
+        // порядок значений — как в PIM (как пришло из API); пустые убираем
+        var items = d.options.map(function (opt) {
           return { opt: opt, base: baseCount(d, opt) };
         }).filter(function (o) {
-          return o.base > 0 || setHas(st.set, String(o.opt)); // без товаров — прячем
-        }).sort(function (a, b) { return b.base - a.base; });    // популярные выше
+          return o.base > 0 || setHas(st.set, String(o.opt));
+        });
+        // популярность — только чтобы выбрать топ-N для свёрнутого вида
+        var top = {};
+        items.slice().sort(function (a, b) { return b.base - a.base; })
+             .slice(0, SELECT_LIMIT)
+             .forEach(function (o) { top[String(o.opt)] = 1; });
 
-        var grp = { rows: [], toggle: null, expanded: false };
-        opts.forEach(function (o) {
+        var grp = { rows: [], toggle: null, search: null, expanded: false, query: "" };
+        var long = items.length > SELECT_LIMIT;
+
+        if (long) { // поиск внутри длинного фильтра (напр. цвет: A1, A2, OPA1…)
+          var sb = el("input", "filter-search");
+          sb.type = "search"; sb.placeholder = "Поиск значения…";
+          sb.addEventListener("input", function () {
+            grp.query = sb.value.trim().toLowerCase(); applyVisibility();
+          });
+          group.appendChild(sb); grp.search = sb;
+        }
+
+        items.forEach(function (o) {
           var opt = o.opt;
           var c = checkboxRow(String(opt), d.key, function (on) {
             if (on) st.set[String(opt)] = 1; else delete st.set[String(opt)]; apply();
@@ -240,18 +257,19 @@
               return v != null && String(v) === String(opt);
             });
           });
+          c.value = String(opt).toLowerCase(); // для поиска
+          c.top = !!top[String(opt)];
           if (setHas(st.set, String(opt))) c.cb.checked = true;
           group.appendChild(c.row); refreshers.push(c); grp.rows.push(c);
         });
 
-        if (grp.rows.length > SELECT_LIMIT) {
+        if (long) {
           var more = el("button", "filter-more");
           more.type = "button";
           more.addEventListener("click", function () {
             grp.expanded = !grp.expanded; applyVisibility();
           });
-          group.appendChild(more);
-          grp.toggle = more;
+          group.appendChild(more); grp.toggle = more;
           selectGroups.push(grp);
         }
       }
@@ -260,18 +278,24 @@
     });
   }
 
-  // видимость строк селект-групп: прячем пустые значения + сворачиваем длинные списки
+  // видимость строк селект-групп: прячем пустые, сворачиваем длинные, учитываем поиск
   function applyVisibility() {
     selectGroups.forEach(function (grp) {
-      var shown = 0, hidden = 0;
+      var q = grp.query, hidden = 0;
       grp.rows.forEach(function (r) {
         if (r._dynEmpty) { r._collapseHidden = false; return; }
-        shown++;
-        r._collapseHidden = (!grp.expanded && shown > SELECT_LIMIT);
-        if (r._collapseHidden) hidden++;
+        if (q) {                            // поиск: показываем совпадения, сворачивание не действует
+          r._collapseHidden = (r.value.indexOf(q) === -1);
+        } else if (grp.expanded) {          // раскрыто: весь список в PIM-порядке
+          r._collapseHidden = false;
+        } else if (r.top) {                 // свёрнуто: только топ-N по популярности (в PIM-порядке)
+          r._collapseHidden = false;
+        } else {
+          r._collapseHidden = true; hidden++;
+        }
       });
       if (grp.toggle) {
-        grp.toggle.style.display = (grp.expanded || hidden > 0) ? "" : "none";
+        grp.toggle.style.display = (!q && (grp.expanded || hidden > 0)) ? "" : "none";
         grp.toggle.textContent = grp.expanded ? "Свернуть" : ("Показать ещё " + hidden);
       }
     });

@@ -243,6 +243,8 @@ a.card{text-decoration:none;color:inherit}
 .filter-opt.opt-empty{opacity:.4}
 .filter-more{border:0;background:transparent;color:var(--primary);cursor:pointer;font-size:13px;padding:6px 0 0;margin-top:2px}
 .filter-more:hover{text-decoration:underline}
+.filter-search{width:100%;box-sizing:border-box;margin-bottom:8px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;font-size:13px;background:#fff}
+.filter-search:focus{outline:none;border-color:var(--primary)}
 .range-row{display:flex;align-items:center;gap:8px}
 .range-in{width:100%;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:9px;font-size:14px}
 .range-dash{color:var(--muted)}
