@@ -29,8 +29,11 @@
                 display: "select_checkbox", options: data.brands, unit: "" });
   }
   (data.filters || []).forEach(function (f) {
+    var opts = (f.options || []).map(function (o) {
+      return (o && typeof o === "object") ? o.value : o; // API отдаёт строки; подстрахуемся под {value}
+    });
     defs.push({ key: f.code, code: f.code, name: f.name, display: f.display,
-                unit: f.unit || "", options: f.options || [], buckets: f.buckets || [] });
+                unit: f.unit || "", options: opts, buckets: f.buckets || [] });
   });
   if (!defs.length) return;
 
@@ -115,6 +118,19 @@
     return c;
   }
 
+  // сколько товаров в категории вообще имеют это значение (без учёта фильтров) —
+  // для стабильной сортировки «по популярности» и отсечения пустых значений
+  function baseCount(d, opt) {
+    var c = 0;
+    for (var i = 0; i < cards.length; i++) {
+      var s = cards[i].slug; if (!s) continue;
+      var v = prodVal(s, d.code);
+      if (Array.isArray(v)) { if (v.map(String).indexOf(String(opt)) !== -1) c++; }
+      else if (v != null && String(v) === String(opt)) c++;
+    }
+    return c;
+  }
+
   // ---------- рендер ----------
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -135,10 +151,14 @@
   }
 
   var refreshers = []; // функции, обновляющие счётчики/доступность
+  var selectGroups = []; // сворачиваемые группы-селекты (>10 значений)
+  var SELECT_LIMIT = 10; // сколько значений показывать в свёрнутом виде
 
   function render() {
     panel.innerHTML = "";
     panel.hidden = false;
+    refreshers = [];
+    selectGroups = [];
     var head = el("div", "filters-head");
     head.appendChild(el("h2", "filters-title", "Фильтры"));
     var reset = el("button", "filters-reset", "Сбросить");
@@ -203,7 +223,15 @@
         });
 
       } else { // select_checkbox
-        d.options.forEach(function (opt) {
+        var opts = d.options.map(function (opt) {
+          return { opt: opt, base: baseCount(d, opt) };
+        }).filter(function (o) {
+          return o.base > 0 || setHas(st.set, String(o.opt)); // без товаров — прячем
+        }).sort(function (a, b) { return b.base - a.base; });    // популярные выше
+
+        var grp = { rows: [], toggle: null, expanded: false };
+        opts.forEach(function (o) {
+          var opt = o.opt;
           var c = checkboxRow(String(opt), d.key, function (on) {
             if (on) st.set[String(opt)] = 1; else delete st.set[String(opt)]; apply();
           }, function () {
@@ -213,10 +241,42 @@
             });
           });
           if (setHas(st.set, String(opt))) c.cb.checked = true;
-          group.appendChild(c.row); refreshers.push(c);
+          group.appendChild(c.row); refreshers.push(c); grp.rows.push(c);
         });
+
+        if (grp.rows.length > SELECT_LIMIT) {
+          var more = el("button", "filter-more");
+          more.type = "button";
+          more.addEventListener("click", function () {
+            grp.expanded = !grp.expanded; applyVisibility();
+          });
+          group.appendChild(more);
+          grp.toggle = more;
+          selectGroups.push(grp);
+        }
       }
-      panel.appendChild(group);
+      // пустую группу (без единого значения) не показываем
+      if (group.querySelector(".filter-opt, .range-row")) panel.appendChild(group);
+    });
+  }
+
+  // видимость строк селект-групп: прячем пустые значения + сворачиваем длинные списки
+  function applyVisibility() {
+    selectGroups.forEach(function (grp) {
+      var shown = 0, hidden = 0;
+      grp.rows.forEach(function (r) {
+        if (r._dynEmpty) { r._collapseHidden = false; return; }
+        shown++;
+        r._collapseHidden = (!grp.expanded && shown > SELECT_LIMIT);
+        if (r._collapseHidden) hidden++;
+      });
+      if (grp.toggle) {
+        grp.toggle.style.display = (grp.expanded || hidden > 0) ? "" : "none";
+        grp.toggle.textContent = grp.expanded ? "Свернуть" : ("Показать ещё " + hidden);
+      }
+    });
+    refreshers.forEach(function (r) {
+      r.row.style.display = (r._dynEmpty || r._collapseHidden) ? "none" : "";
     });
   }
 
@@ -241,8 +301,9 @@
     refreshers.forEach(function (r) {
       var n = r.getCount();
       r.cnt.textContent = n;
-      r.row.classList.toggle("opt-empty", n === 0 && !r.cb.checked);
+      r._dynEmpty = (n === 0 && !r.cb.checked); // пустое и не выбрано — прячем
     });
+    applyVisibility();
     syncURL();
   }
 

@@ -207,7 +207,9 @@ a.card{text-decoration:none;color:inherit}
 /* ---- левый сайдбар категории: дерево + фильтры ---- */
 .cat-layout{display:grid;grid-template-columns:260px 1fr;gap:26px;align-items:start}
 .cat-products{min-width:0}
-.cat-sidebar{position:sticky;top:18px;display:flex;flex-direction:column;gap:18px}
+.cat-sidebar{position:sticky;top:18px;display:flex;flex-direction:column;gap:18px;max-height:calc(100vh - 36px);overflow-y:auto;overscroll-behavior:contain;padding-right:4px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.cat-sidebar::-webkit-scrollbar{width:8px}
+.cat-sidebar::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
 .cat-sidebar-close{display:none}
 .side-title{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin:0 0 8px}
 
@@ -239,6 +241,8 @@ a.card{text-decoration:none;color:inherit}
 .filter-opt .opt-name{flex:1}
 .filter-opt .opt-count{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 .filter-opt.opt-empty{opacity:.4}
+.filter-more{border:0;background:transparent;color:var(--primary);cursor:pointer;font-size:13px;padding:6px 0 0;margin-top:2px}
+.filter-more:hover{text-decoration:underline}
 .range-row{display:flex;align-items:center;gap:8px}
 .range-in{width:100%;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:9px;font-size:14px}
 .range-dash{color:var(--muted)}
