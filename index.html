@@ -15,7 +15,10 @@
 <header class="site-header">
   <div class="wrap header-row">
     <a class="logo" href="./" onclick="setView('catalog');return false;" aria-label="ПрофиСфера — на главную"><img class="logo-img" src="logo.svg" alt="ПрофиСфера" height="24"></a>
-    <div class="search" role="search" aria-label="Поиск (скоро)"><span class="search-ph">Найти по названию или артикулу</span></div>
+    <form class="search" role="search" action="search/" method="get" autocomplete="off">
+      <svg class="search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg>
+      <input class="search-input" type="search" name="q" placeholder="Найти по названию или артикулу" aria-label="Поиск по каталогу">
+    </form>
     <div class="hcontact"><a class="hphone" href="tel:+79313181319">+7 (931) 318-13-19</a><span class="hhours">ПН-ПТ с 10:00 до 20:00</span></div>
     <div class="hactions"><span class="acct" title="Личный кабинет — скоро"><img src="ic-user.svg" alt="" width="24" height="24"></span><span class="cart" title="Корзина — скоро"><img src="ic-cart.svg" alt="" width="24" height="24"><span class="cart-t">Корзина</span><b class="cart-badge">1</b></span></div>
   </div>
@@ -66,5 +69,6 @@
 
 <script src="app.js"></script>
 <script src="catalog-menu.js" defer></script>
+<script src="search.js" defer></script>
 </body>
 </html>

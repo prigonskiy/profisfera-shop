@@ -101,7 +101,10 @@ ${og}
 <header class="site-header">
   <div class="wrap header-row">
     <a class="logo" href="${SITE_BASE}/" aria-label="ПрофиСфера — на главную"><img class="logo-img" src="${SITE_BASE}/logo.svg" alt="ПрофиСфера" height="24"></a>
-    <div class="search" role="search" aria-label="Поиск (скоро)"><span class="search-ph">Найти по названию или артикулу</span></div>
+    <form class="search" role="search" action="${SITE_BASE}/search/" method="get" autocomplete="off">
+      <svg class="search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg>
+      <input class="search-input" type="search" name="q" placeholder="Найти по названию или артикулу" aria-label="Поиск по каталогу">
+    </form>
     <div class="hcontact"><a class="hphone" href="tel:+79313181319">+7 (931) 318-13-19</a><span class="hhours">ПН-ПТ с 10:00 до 20:00</span></div>
     <div class="hactions"><span class="acct" title="Личный кабинет — скоро"><img src="${SITE_BASE}/ic-user.svg" alt="" width="24" height="24"></span><span class="cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart.svg" alt="" width="24" height="24"><span class="cart-t">Корзина</span><b class="cart-badge">1</b></span></div>
   </div>
@@ -123,6 +126,7 @@ ${content}
   </div>
 </footer>
 <script src="${SITE_BASE}/catalog-menu.js" defer></script>
+<script src="${SITE_BASE}/search.js" defer></script>
 </body>
 </html>
 `;
@@ -140,6 +144,21 @@ function productTile(p) {
 function grid(products, emptyText) {
   if (!products.length) return `<div class="state"><h3>Товаров пока нет</h3><p>${esc(emptyText || "")}</p></div>`;
   return `<div class="grid">${products.map(productTile).join("")}</div>`;
+}
+
+/* ---------- страница результатов поиска ---------- */
+function searchPage() {
+  const content = `<main class="wrap search-page">
+  <h1 class="search-h">Поиск</h1>
+  <p class="search-sub" id="search-count">Введите запрос в строке поиска выше.</p>
+  <div class="grid" id="search-results"></div>
+</main>`;
+  return layout({
+    title: "Поиск — ПрофиСфера",
+    description: "Поиск по каталогу стоматологических материалов и инструментов ПрофиСфера.",
+    canonical: `${SITE_BASE}/search/`,
+    content,
+  });
 }
 
 /* ---------- страница товара ---------- */
@@ -335,7 +354,7 @@ function collectCategories(nodes) {
   return out;
 }
 async function copyStatic() {
-  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js", "catalog-menu.js", "ic-user.svg", "ic-cart.svg", "ic-cart-sm.svg", "ic-caret.svg", "ic-burger.svg", "ic-cat-tools.svg", "ic-cat-materials.svg", "ic-cat-equipment.svg", "ic-stock.svg", "ic-delivery.svg", "ic-bonus.svg", "banner-devices.png"]) {
+  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js", "catalog-menu.js", "search.js", "ic-user.svg", "ic-cart.svg", "ic-cart-sm.svg", "ic-caret.svg", "ic-burger.svg", "ic-cat-tools.svg", "ic-cat-materials.svg", "ic-cat-equipment.svg", "ic-stock.svg", "ic-delivery.svg", "ic-bonus.svg", "banner-devices.png"]) {
     const src = path.join(ROOT, f);
     if (existsSync(src)) await copyFile(src, path.join(OUT, f));
   }
@@ -389,6 +408,21 @@ async function main() {
   for (const c of cats) countBySlug[c.slug] = list.filter((p) => c.slugs.includes(p.category)).length;
   await writeFile(path.join(OUT, "counts.json"), JSON.stringify(countBySlug), "utf8");
   await writeFile(path.join(OUT, "tree.json"), JSON.stringify(tree), "utf8");
+
+  // индекс поиска (клиентский) + страница результатов /search/
+  const catNameBySlug = {};
+  cats.forEach((c) => { catNameBySlug[c.slug] = c.name; });
+  const searchIndex = list.filter((p) => p.slug).map((p) => ({
+    slug: p.slug,
+    name: p.name || "",
+    sku: p.manufacturer_sku || "",
+    brand: p.brand || "",
+    thumb: p.thumbnail || "",
+    cat: catNameBySlug[p.category] || "",
+  }));
+  await writeFile(path.join(OUT, "search-index.json"), JSON.stringify(searchIndex), "utf8");
+  await mkdir(path.join(OUT, "search"), { recursive: true });
+  await writeFile(path.join(OUT, "search", "index.html"), searchPage(), "utf8");
 
   // категории (разделы) — cats уже собраны выше
   let nc = 0;
