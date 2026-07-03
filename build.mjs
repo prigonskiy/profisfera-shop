@@ -188,7 +188,7 @@ ${hydrate}`;
 }
 
 /* ---------- страница производителя ---------- */
-function brandPage(b, products) {
+function brandPage(b, products, pruned, brandCounts) {
   const canonical = `${SITE_BASE}/brand/${b.slug}/`;
   const logo = b.logo ? `<div class="blogo"><img src="${esc(b.logo)}" alt="${esc(b.name)}"></div>` : "";
   const desc = b.description
@@ -199,16 +199,75 @@ function brandPage(b, products) {
     { name: "Бренды", href: `${SITE_BASE}/brands/` },
     { name: b.name },
   ]);
+  const gridHtml = grid(products, "У этого производителя пока нет товаров в каталоге.");
+  const hasTree = pruned && pruned.length;
+  const body = hasTree
+    ? `<div class="cat-mobilebar"><button type="button" class="cat-mtoggle" data-target="cat"><i class="ti"></i>Категории</button></div>
+  <div class="cat-layout">
+    <aside class="cat-sidebar" id="cat-sidebar">
+      <button type="button" class="cat-sidebar-close" aria-label="Закрыть">×</button>
+      ${brandTreeNav(pruned, null, brandCounts, b.slug)}
+    </aside>
+    <div class="cat-products">${gridHtml}</div>
+  </div>`
+    : gridHtml;
   const content = `<main class="page-shell">
   ${bcrumbs}
   <div class="brandhead">${logo}<div class="brandinfo"><h1 class="btitle">${esc(b.name)}</h1>${desc}</div></div>
   <div class="main-head"><h2 class="sec-h">Товары производителя</h2><div class="count"><b>${products.length}</b> товаров</div></div>
-  ${grid(products, "У этого производителя пока нет товаров в каталоге.")}
-</main>`;
+  ${body}
+</main>
+${hasTree ? `<script src="${SITE_BASE}/category-nav.js" defer></script>` : ""}`;
   return layout({
     title: `${b.name} — производитель — ПрофиСфера`,
     description: stripHtml(b.description) || `Товары производителя ${b.name} в каталоге ПрофиСфера.`,
     canonical, image: b.logo || null, bodyClass: "page-brand", content,
+  });
+}
+
+/* ---------- страница «бренд × категория» ---------- */
+function brandCategoryPage(b, cat, products, filterData, pruned, brandCounts) {
+  const canonical = `${SITE_BASE}/brand/${b.slug}/${cat.slug}/`;
+  const gridHtml = products.length
+    ? `<div class="grid" id="cat-grid">${products.map(productTile).join("")}</div>`
+    : `<div class="state"><h3>Товаров пока нет</h3><p>У бренда нет товаров в этой категории.</p></div>`;
+  const hasFilters =
+    (filterData.filters && filterData.filters.length) ||
+    (filterData.brands && filterData.brands.length > 1);
+  const filtersBlock = hasFilters ? `<div class="filters" id="filters"></div>` : "";
+  const sidebar = `<aside class="cat-sidebar" id="cat-sidebar">
+      <button type="button" class="cat-sidebar-close" aria-label="Закрыть">×</button>
+      ${brandTreeNav(pruned, cat.slug, brandCounts, b.slug)}${filtersBlock}
+    </aside>`;
+  const mobilebar = `<div class="cat-mobilebar">
+    <button type="button" class="cat-mtoggle" data-target="cat"><i class="ti"></i>Категории</button>
+    ${hasFilters ? `<button type="button" class="cat-mtoggle" data-target="filters">Фильтры</button>` : ""}
+  </div>`;
+  const filtersJson = hasFilters
+    ? `<script type="application/json" id="category-filters-data">${JSON.stringify(filterData).replace(/</g, "\\u003c")}</script>`
+    : "";
+  const trailItems = [
+    { name: "Каталог", href: `${SITE_BASE}/` },
+    { name: "Бренды", href: `${SITE_BASE}/brands/` },
+    { name: b.name, href: `${SITE_BASE}/brand/${b.slug}/` },
+    { name: cat.name },
+  ];
+  const content = `<main class="page-shell">
+  ${crumbs(trailItems)}
+  <div class="main-head"><div class="main-head-l"><h1>${esc(b.name)}: ${esc(cat.name)}</h1><div class="count" id="cat-count"><b>${products.length}</b> товаров</div></div><div class="sort-stub" title="Сортировка — скоро"><span>По популярности</span><i class="caret-down"></i></div></div>
+  ${mobilebar}
+  <div class="cat-layout">
+    ${sidebar}
+    <div class="cat-products">${gridHtml}</div>
+  </div>
+  ${filtersJson}
+</main>
+<script src="${SITE_BASE}/category-nav.js" defer></script>
+${hasFilters ? `<script src="${SITE_BASE}/category-filters.js" defer></script>` : ""}`;
+  return layout({
+    title: `${b.name}: ${cat.name} — ПрофиСфера`,
+    description: `Товары производителя ${b.name} в категории «${cat.name}» — каталог ПрофиСфера.`,
+    canonical, bodyClass: "page-brand-cat", content,
   });
 }
 
@@ -251,6 +310,40 @@ function catNav(nodes, currentSlug, counts, openSet) {
     const kids = hasKids ? `<ul>${catNav(n.children, currentSlug, counts, openSet)}</ul>` : "";
     return `<li${liClass ? ` class="${liClass}"` : ""}><div class="cat-row">${toggle}<a href="${SITE_BASE}/c/${n.slug}/"${cur}>${esc(n.name)}${cnt}</a></div>${kids}</li>`;
   }).join("");
+}
+
+// подрезка дерева до веток, где есть товары бренда (keep — слаги таких категорий и их предков)
+function pruneTree(nodes, keep) {
+  const out = [];
+  for (const n of nodes || []) {
+    const kids = pruneTree(n.children || [], keep);
+    if (keep.has(n.slug) || kids.length) out.push({ ...n, children: kids });
+  }
+  return out;
+}
+// полное дерево категорий бренда (все вложенности), ссылки на /brand/<slug>/<cat>/
+function brandCatNav(nodes, currentSlug, counts, brandSlug) {
+  return nodes.map((n) => {
+    const c = counts[n.slug];
+    const cnt = c != null ? `<span class="cat-count">${c}</span>` : "";
+    const cur = n.slug === currentSlug ? ' class="current" aria-current="page"' : "";
+    const hasKids = n.children && n.children.length;
+    const toggle = hasKids
+      ? `<button type="button" class="cat-toggle" aria-label="Развернуть или свернуть"></button>`
+      : `<span class="cat-toggle"></span>`;
+    const kids = hasKids ? `<ul>${brandCatNav(n.children, currentSlug, counts, brandSlug)}</ul>` : "";
+    return `<li${hasKids ? ` class="has-kids"` : ""}><div class="cat-row">${toggle}<a href="${SITE_BASE}/brand/${brandSlug}/${n.slug}/"${cur}>${esc(n.name)}${cnt}</a></div>${kids}</li>`;
+  }).join("");
+}
+function brandTreeNav(pruned, currentSlug, counts, brandSlug) {
+  const up = currentSlug
+    ? `<a class="cn-up" href="${SITE_BASE}/brand/${brandSlug}/">\u2190 Все товары бренда</a>`
+    : "";
+  return `<nav class="cat-nav" aria-label="Категории бренда">
+      <div class="side-title">Категории</div>
+      ${up}
+      <ul class="cat-tree">${brandCatNav(pruned, currentSlug, counts, brandSlug)}</ul>
+    </nav>`;
 }
 
 function findNode(nodes, slug) {
@@ -363,6 +456,16 @@ const sitemap = (urls) =>
   urls.map((u) => `  <url><loc>${esc(u)}</loc></url>`).join("\n") + `\n</urlset>\n`;
 const robots = () => `User-agent: *\nAllow: /\n\nSitemap: ${SITE_BASE}/sitemap.xml\n`;
 
+/* кэш конфигов фильтров по слагу категории (для страниц категорий и «бренд × категория») */
+const filtersCache = {};
+async function getFilters(slug) {
+  if (slug in filtersCache) return filtersCache[slug];
+  let f = [];
+  try { f = await getJSON(`/api/categories/${slug}/filters/`); } catch (e) { f = []; }
+  filtersCache[slug] = f;
+  return f;
+}
+
 /* ---------- сборка ---------- */
 function collectCategories(nodes) {
   const out = [];
@@ -415,15 +518,48 @@ async function main() {
 
   // бренды
   const brands = await fetchList("/api/brands/");
-  let nb = 0;
+  let nb = 0, nbc = 0;
   for (const b of brands) {
     if (!b.slug) continue;
     const prods = await fetchList(`/api/products/?brand=${b.id}`);
+    // категории, где у бренда есть товары (по поддереву) → подрезанное дерево + счётчики
+    const keep = new Set();
+    const brandCounts = {};
+    for (const c of cats) {
+      const cnt = prods.filter((p) => c.slugs.includes(p.category)).length;
+      if (cnt > 0) { keep.add(c.slug); brandCounts[c.slug] = cnt; }
+    }
+    const pruned = pruneTree(tree, keep);
+
     const dir = path.join(OUT, "brand", b.slug);
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, "index.html"), brandPage(b, prods), "utf8");
+    await writeFile(path.join(dir, "index.html"), brandPage(b, prods, pruned, brandCounts), "utf8");
     urls.push(`${SITE_BASE}/brand/${b.slug}/`);
     nb++;
+
+    // страницы «бренд × категория» — для каждой категории из подрезанного дерева
+    for (const c of cats) {
+      if (!keep.has(c.slug)) continue;
+      const catProds = prods.filter((p) => c.slugs.includes(p.category));
+      const filters = await getFilters(c.slug);
+      const codes = filters.map((f) => f.code);
+      const bset = new Set();
+      const values = {};
+      for (const p of catProds) {
+        const entry = { brand: p.brand || null };
+        if (p.brand) bset.add(p.brand);
+        const ch = charsBySlug[p.slug] || {};
+        for (const code of codes) if (code in ch) entry[code] = ch[code];
+        values[p.slug] = entry;
+      }
+      const filterData = { filters, brands: Array.from(bset).sort(), values };
+      const cdir = path.join(OUT, "brand", b.slug, c.slug);
+      await mkdir(cdir, { recursive: true });
+      await writeFile(path.join(cdir, "index.html"),
+        brandCategoryPage(b, c, catProds, filterData, pruned, brandCounts), "utf8");
+      urls.push(`${SITE_BASE}/brand/${b.slug}/${c.slug}/`);
+      nbc++;
+    }
   }
   // страница со списком всех брендов
   await mkdir(path.join(OUT, "brands"), { recursive: true });
@@ -457,12 +593,7 @@ async function main() {
     if (!c.slug) continue;
     const prods = list.filter((p) => c.slugs.includes(p.category)); // включая товары вложенных категорий
     // конфиг фильтров (с наследованием) + значения товаров только по нужным кодам
-    let filters = [];
-    try {
-      filters = await getJSON(`/api/categories/${c.slug}/filters/`);
-    } catch (e) {
-      filters = []; // нет конфигурации — страница просто без фильтров
-    }
+    const filters = await getFilters(c.slug);
     const codes = filters.map((f) => f.code);
     const brandsSet = new Set();
     const values = {};
@@ -486,7 +617,7 @@ async function main() {
   await writeFile(path.join(OUT, "sitemap.xml"), sitemap(urls), "utf8");
   await writeFile(path.join(OUT, "robots.txt"), robots(), "utf8");
 
-  console.log(`Готово: товаров ${n}, брендов ${nb}, категорий ${nc}, всего URL в sitemap ${urls.length}`);
+  console.log(`Готово: товаров ${n}, брендов ${nb} (стр. бренд×категория ${nbc}), категорий ${nc}, всего URL в sitemap ${urls.length}`);
 }
 
 main().catch((e) => {
