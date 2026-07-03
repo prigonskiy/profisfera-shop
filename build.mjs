@@ -65,11 +65,10 @@ function catIcon(name) {
 
 // навигация из верхних категорий дерева (с выпадающими подкатегориями)
 let NAV_HTML = "";
-function buildMainNav(tree) {
-  // Верхняя панель — простые ссылки на верхние категории; вся навигация теперь в кнопке «Каталог».
-  return tree.map((root) =>
-    `<a class="nav-cat-link" href="${SITE_BASE}/c/${root.slug}/">${esc(root.name)}</a>`
-  ).join("");
+function buildMainNav() {
+  // Разделы рядом с «Каталогом» (категории — внутри кнопки «Каталог»).
+  // Задел на будущее: сюда же добавятся «Медицинские кейсы» и «Справочник».
+  return `<a class="nav-cat-link" href="${SITE_BASE}/brands/">Бренды</a>`;
 }
 
 function layout({ title, description, canonical, image, bodyClass, content }) {
@@ -197,7 +196,7 @@ function brandPage(b, products) {
     : `<p style="color:var(--muted)">Описание производителя пока не заполнено в PIM.</p>`;
   const bcrumbs = crumbs([
     { name: "Каталог", href: `${SITE_BASE}/` },
-    { name: "Производители", href: `${SITE_BASE}/#brands` },
+    { name: "Бренды", href: `${SITE_BASE}/brands/` },
     { name: b.name },
   ]);
   const content = `<main class="page-shell">
@@ -210,6 +209,30 @@ function brandPage(b, products) {
     title: `${b.name} — производитель — ПрофиСфера`,
     description: stripHtml(b.description) || `Товары производителя ${b.name} в каталоге ПрофиСфера.`,
     canonical, image: b.logo || null, bodyClass: "page-brand", content,
+  });
+}
+
+/* ---------- страница списка брендов ---------- */
+function brandTile(b) {
+  const ph = b.logo
+    ? `<div class="ph"><img src="${esc(b.logo)}" alt="${esc(b.name)}" loading="lazy"></div>`
+    : `<div class="ph"><div class="noimg">${esc(b.name)}</div></div>`;
+  const ds = stripHtml(b.description || "");
+  const dsHtml = ds ? `<div class="ds">${esc(ds)}</div>` : "";
+  return `<a class="card brandcard" href="${SITE_BASE}/brand/${esc(b.slug)}/">${ph}<div class="body"><div class="nm">${esc(b.name)}</div>${dsHtml}</div></a>`;
+}
+function brandsPage(brands) {
+  const cards = brands.filter((b) => b.slug).map(brandTile).join("");
+  const content = `<main class="page-shell">
+  ${crumbs([{ name: "Каталог", href: `${SITE_BASE}/` }, { name: "Бренды" }])}
+  <div class="main-head"><h1 class="sec-h">Бренды</h1><div class="count"><b>${brands.length}</b> производителей</div></div>
+  ${cards ? `<div class="grid">${cards}</div>` : `<div class="state"><h3>Производителей пока нет</h3><p>Добавьте бренды в PIM.</p></div>`}
+</main>`;
+  return layout({
+    title: "Бренды — ПрофиСфера",
+    description: "Производители стоматологических материалов и инструментов, представленные на ПрофиСфере.",
+    canonical: `${SITE_BASE}/brands/`,
+    bodyClass: "page-brands", content,
   });
 }
 
@@ -402,6 +425,10 @@ async function main() {
     urls.push(`${SITE_BASE}/brand/${b.slug}/`);
     nb++;
   }
+  // страница со списком всех брендов
+  await mkdir(path.join(OUT, "brands"), { recursive: true });
+  await writeFile(path.join(OUT, "brands", "index.html"), brandsPage(brands), "utf8");
+  urls.push(`${SITE_BASE}/brands/`);
 
   // количество товаров по поддереву каждой категории (счётчики в навигации)
   const countBySlug = {};

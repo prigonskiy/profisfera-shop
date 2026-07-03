@@ -7,7 +7,8 @@ const CAT_ICON = { "инструменты":"ic-cat-tools.svg", "материа�
 function catIcon(name){ const f = CAT_ICON[(name||"").trim().toLowerCase()]; return f ? `<img class="nav-ic" src="${f}" alt="" width="20" height="20">` : ""; }
 function buildMainnavCats(roots){
   const box = $("#mainnav-cats"); if(!box) return;
-  box.innerHTML = roots.map(root=>`<a class="nav-cat-link" href="c/${encodeURIComponent(root.slug)}/">${esc(root.name)}</a>`).join("");
+  // разделы рядом с «Каталогом»; категории — внутри кнопки «Каталог»
+  box.innerHTML = `<a class="nav-cat-link" href="brands/">Бренды</a>`;
 }
 
 const $ = (s,r=document)=>r.querySelector(s);

@@ -347,7 +347,7 @@ a.card{text-decoration:none;color:inherit}
   .mainnav{padding:8px 0 12px}
   .mainnav-row{flex-wrap:wrap;gap:8px;padding:9px 10px}
   .nav-catalog{flex:1 1 100%;justify-content:center}
-  .nav-cats{display:none}
+  .nav-cats{display:flex;flex:1 1 100%;flex-wrap:wrap;justify-content:center;gap:8px 14px}
   .nav-links{display:flex;margin-left:0;flex:1 1 100%;flex-wrap:wrap;justify-content:center;gap:8px 14px}
   .nav-stub{font-size:13px}
   .footer-grid{grid-template-columns:1fr;gap:18px;text-align:left}
