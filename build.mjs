@@ -67,8 +67,10 @@ function catIcon(name) {
 let NAV_HTML = "";
 function buildMainNav() {
   // Разделы рядом с «Каталогом» (категории — внутри кнопки «Каталог»).
-  // Задел на будущее: сюда же добавятся «Медицинские кейсы» и «Справочник».
-  return `<a class="nav-cat-link" href="${SITE_BASE}/brands/">Бренды</a>`;
+  // «Кейсы» и «Справочник» — задел на будущее, пока неактивны.
+  return `<a class="nav-cat-link" href="${SITE_BASE}/brands/">Бренды</a>` +
+    `<span class="nav-cat-link nav-soon" title="Скоро">Кейсы</span>` +
+    `<span class="nav-cat-link nav-soon" title="Скоро">Справочник</span>`;
 }
 
 function layout({ title, description, canonical, image, bodyClass, content }) {

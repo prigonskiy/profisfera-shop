@@ -8,7 +8,25 @@ export const esc = (s) =>
   String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-export const stripHtml = (s) => String(s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+const NAMED_ENTITIES = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'",
+  nbsp: "\u00A0", mdash: "\u2014", ndash: "\u2013", hellip: "\u2026",
+  laquo: "\u00AB", raquo: "\u00BB", copy: "\u00A9", reg: "\u00AE",
+  trade: "\u2122", deg: "\u00B0", times: "\u00D7", middot: "\u00B7",
+  rsquo: "\u2019", lsquo: "\u2018", ldquo: "\u201C", rdquo: "\u201D",
+  sbquo: "\u201A", bdquo: "\u201E", plusmn: "\u00B1", frac12: "\u00BD",
+};
+export const decodeEntities = (s) =>
+  String(s == null ? "" : s).replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);/g, (m, code) => {
+    if (code[0] === "#") {
+      const n = /^#x/i.test(code) ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+      return Number.isNaN(n) ? m : String.fromCodePoint(n);
+    }
+    const v = NAMED_ENTITIES[code] != null ? NAMED_ENTITIES[code] : NAMED_ENTITIES[code.toLowerCase()];
+    return v != null ? v : m;
+  });
+export const stripHtml = (s) =>
+  decodeEntities(String(s || "").replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
 export function crumbs(items) {
   // items: [{name, href?}]; элемент без href — текущая страница (не ссылка)
   const sep = '<span class="crumb-sep" aria-hidden="true">\u203a</span>';
