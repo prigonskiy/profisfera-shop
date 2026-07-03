@@ -80,40 +80,34 @@ export function productMain(p, SITE_BASE, categoryTrail) {
   if (p.brand && p.brand.name) info += `<a class="p-brand" href="${SITE_BASE}/brand/${esc(p.brand.slug)}/">${esc(p.brand.name)}</a>`;
   if (p.short_description) info += `<p class="plede">${esc(p.short_description)}</p>`;
 
-  // варианты — из p.group. Сначала по уровням (Тип/Цвет); если уровней нет
-  // или значения не заполнены — показываем серию плоским списком (не теряем блок).
+  // варианты — из p.group, сгруппированы по уровням. Поддерживаем обе формы данных:
+  // новую (v.level — имя одного уровня) и старую (v.levels — словарь уровень→значение).
   if (p.group && p.group.variants && p.group.variants.length > 1) {
-    const current = p.group.variants.find((v) => v.is_current) || {};
     const levels = p.group.levels || [];
+    const levelOf = (v) => {
+      if (v.level != null) return v.level;
+      if (v.levels) { const k = Object.keys(v.levels); return k.length ? k[0] : null; }
+      return null;
+    };
+    const chip = (v) => {
+      const t = esc(v.label || v.name || "\u2014");
+      return v.is_current
+        ? `<span class="p-opt active">${t}</span>`
+        : `<a class="p-opt" href="${SITE_BASE}/product/${esc(v.slug)}/">${t}</a>`;
+    };
     let vrows = "";
     levels.forEach((lvl) => {
       const lvlName = lvl && lvl.name;
       if (!lvlName) return;
-      const seen = [];
-      const byVal = {};
-      p.group.variants.forEach((v) => {
-        const val = v.levels ? v.levels[lvlName] : undefined;
-        if (val != null && val !== "" && !Object.prototype.hasOwnProperty.call(byVal, val)) { byVal[val] = v; seen.push(val); }
-      });
-      if (!seen.length) return;
-      const curVal = current.levels ? current.levels[lvlName] : undefined;
+      const members = p.group.variants.filter((v) => levelOf(v) === lvlName);
+      if (!members.length) return;
       vrows += `<div class="p-variant"><div class="p-vlabel">${esc(lvlName)}</div><div class="p-opts">` +
-        seen.map((val) => {
-          const v = byVal[val];
-          return val === curVal
-            ? `<span class="p-opt active">${esc(val)}</span>`
-            : `<a class="p-opt" href="${SITE_BASE}/product/${esc(v.slug)}/">${esc(val)}</a>`;
-        }).join("") + `</div></div>`;
+        members.map(chip).join("") + `</div></div>`;
     });
+    // фолбэк: уровней нет или варианты к ним не привязаны — плоский список
     if (!vrows) {
-      const label = p.group.name ? `Серия «${esc(p.group.name)}»` : "Другие варианты";
-      vrows = `<div class="p-variant"><div class="p-vlabel">${label}</div><div class="p-opts">` +
-        p.group.variants.map((v) => {
-          const t = esc(v.label || v.name || "—");
-          return v.is_current
-            ? `<span class="p-opt active">${t}</span>`
-            : `<a class="p-opt" href="${SITE_BASE}/product/${esc(v.slug)}/">${t}</a>`;
-        }).join("") + `</div></div>`;
+      vrows = `<div class="p-variant"><div class="p-vlabel">Другие варианты</div><div class="p-opts">` +
+        p.group.variants.map(chip).join("") + `</div></div>`;
     }
     info += vrows;
   }
