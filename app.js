@@ -278,7 +278,6 @@ function renderProduct(p){
 
   // ключевые идентификаторы (PIM-поля — моноширинным)
   const idRows=[];
-  if(p.external_id) idRows.push(["Код (1С)", "<span class='mono'>"+esc(p.external_id)+"</span>"]);
   if(p.manufacturer_sku) idRows.push(["Артикул", "<span class='mono'>"+esc(p.manufacturer_sku)+"</span>"]);
   if(p.gtin) idRows.push(["Штрих-код (GTIN)", "<span class='mono'>"+esc(p.gtin)+"</span>"]);
   if(p.tnved_code) idRows.push(["Код ТН ВЭД", "<span class='mono'>"+esc(p.tnved_code)+"</span>"]);
