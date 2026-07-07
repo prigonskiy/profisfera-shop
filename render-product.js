@@ -68,8 +68,8 @@ export const fmtPrice = (v) => {
   return (n < 0 ? "\u2212" : "") + s + (kop > 0 ? "," + String(kop).padStart(2, "0") : "") + "\u00A0\u20bd";
 };
 
-// Блок «Как купить»: сегменты (каналы) как CSS-only вкладки, внутри — условия.
-export function buyBlock(p, SITE_BASE) {
+// Компактный блок покупки для сайдбара: сегменты пилюлями (CSS-only) + условия стопкой.
+export function purchaseSidebar(p) {
   const order = ["individuals", "clinics", "distributors", "government"];
   const byCh = {};
   (p.offers || []).forEach((o) => {
@@ -81,25 +81,24 @@ export function buyBlock(p, SITE_BASE) {
   const chans = order.filter((c) => byCh[c]);
   if (!chans.length) return "";
 
-  let radios = "", tabs = "", panels = "";
+  let radios = "", pills = "", panels = "";
   chans.forEach((c, i) => {
     const grp = byCh[c];
-    radios += `<input type="radio" name="pseg" id="pseg-${i}" class="buy-radio"${i === 0 ? " checked" : ""}>`;
-    tabs += `<label class="buy-tab" for="pseg-${i}">${esc(grp.name)}</label>`;
-    const rows = grp.rows.map((t) => {
-      const unit = esc(t.unit_name) + (t.unit_base_qty > 1 ? ` <span class="bt-mult">упаковка ${t.unit_base_qty} шт</span>` : "");
-      const stock = t.in_stock ? `<span class="bt-in">в наличии</span>` : `<span class="bt-out">под заказ</span>`;
-      return `<tr><td>${unit}</td><td class="bt-price">${fmtPrice(t.price)}</td>` +
-        `<td class="bt-pp">${fmtPrice(t.per_piece)}/шт</td><td>от ${t.min_qty}</td><td>${t.step}</td><td>${stock}</td></tr>`;
+    radios += `<input type="radio" name="pseg" id="pseg-${i}" class="bb-radio"${i === 0 ? " checked" : ""}>`;
+    pills += `<label class="bb-pill" for="pseg-${i}">${esc(grp.name)}</label>`;
+    const opts = grp.rows.map((t) => {
+      const pack = t.unit_base_qty > 1 ? ` · ${t.unit_base_qty} шт в упаковке` : "";
+      const pp = t.unit_base_qty > 1 ? `<span class="bb-pp">${fmtPrice(t.per_piece)}/шт</span>` : "";
+      const stock = t.in_stock ? `<span class="bb-in">в наличии</span>` : `<span class="bb-out">под заказ</span>`;
+      return `<div class="bb-opt">` +
+        `<div class="bb-opt-row"><span class="bb-opt-unit">${esc(t.unit_name)}${pack}</span>` +
+        `<span class="bb-opt-price">${fmtPrice(t.price)}</span></div>` +
+        `<div class="bb-opt-meta">${pp}<span class="bb-opt-terms">от ${t.min_qty} · шаг ${t.step}</span>${stock}</div>` +
+        `</div>`;
     }).join("");
-    panels += `<div class="buy-panel"><table class="buy-table"><thead><tr>` +
-      `<th>Форма покупки</th><th>Цена</th><th>За штуку</th><th>Мин.</th><th>Шаг</th><th>Наличие</th></tr></thead>` +
-      `<tbody>${rows}</tbody></table></div>`;
+    panels += `<div class="bb-panel">${opts}</div>`;
   });
-  const from = p.price_from ? `<span class="buy-from">от ${fmtPrice(p.price_from)}</span>` : "";
-  return `<div class="buy"><div class="buy-head"><span class="buy-title">Как купить</span>${from}</div>` +
-    radios + `<div class="buy-tabs">${tabs}</div><div class="buy-panels">${panels}</div>` +
-    `<div class="buy-note">Демо-режим: показаны все каналы продаж. Оформление заказа появится позже.</div></div>`;
+  return radios + `<div class="bb-seg">${pills}</div><div class="bb-panels">${panels}</div>`;
 }
 
 /** Внутренний HTML <main class="product-shell"> — крошка + верх + секции. */
@@ -157,9 +156,6 @@ export function productMain(p, SITE_BASE, categoryTrail) {
     info += vrows;
   }
 
-  // как купить — цены по сегментам (демо: все каналы)
-  info += buyBlock(p, SITE_BASE);
-
   // характеристики + идентификаторы
   const charRows = (p.characteristics || []).map((c) =>
     `<tr><td>${esc(c.name)}</td><td>${specValue(c)}</td></tr>`);
@@ -170,19 +166,19 @@ export function productMain(p, SITE_BASE, categoryTrail) {
   if (charRows.length) info += `<div class="p-chars"><div class="p-vlabel">Характеристики</div><table class="ctable"><tbody>${charRows.join("")}</tbody></table></div>`;
   info += `</div>`;
 
-  // блок покупки (сайдбар): цена «от», доставка, бонусы, наличие, корзина
-  const anyStock = (p.offers || []).some((o) => o.in_stock);
+  // блок покупки (сайдбар): цена «от», сегменты, условия, корзина
   const hasOffers = (p.offers || []).some((o) => (o.terms || []).length);
   const bbPrice = p.price_from ? `от ${fmtPrice(p.price_from)}` : "Цена по запросу";
-  const bbStock = hasOffers ? (anyStock ? "В наличии" : "Под заказ") : "Наличие уточняйте";
   const buybox = `<aside class="buybox">` +
     `<div class="bb-price">${bbPrice}</div>` +
+    purchaseSidebar(p) +
+    `<button type="button" class="bb-cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart-sm.svg" alt="" width="14" height="13"><span>В корзину</span></button>` +
     `<ul class="bb-feats">` +
       `<li><img src="${SITE_BASE}/ic-delivery.svg" alt="" width="14" height="14"><span>Доставка от 1 дня</span></li>` +
       `<li><img src="${SITE_BASE}/ic-bonus.svg" alt="" width="13" height="13"><span>Бонусы за каждый заказ</span></li>` +
-      `<li class="bb-stock"><span>${bbStock}</span></li>` +
     `</ul>` +
-    `<button type="button" class="bb-cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart-sm.svg" alt="" width="14" height="13"><span>В корзину</span></button>` +
+    (hasOffers ? `<div class="bb-demo">Демо: показаны все каналы продаж</div>`
+               : `<div class="bb-demo">Наличие и цену уточняйте</div>`) +
   `</aside>`;
 
   // табы: Описание / Документы / Файлы (CSS-only, без JS)
