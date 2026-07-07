@@ -103,6 +103,32 @@ export function purchaseSidebar(p, activeRole) {
   return radios + `<div class="bb-seg">${pills}</div><div class="bb-panels">${panels}</div>`;
 }
 
+// Блок «Обучение»: курсы с модулями (слайды/видео/лонгрид). Плеер — в course.js.
+function educationBlock(p) {
+  const courses = (p.courses || []).filter((c) => c && c.modules && c.modules.length);
+  if (!courses.length) return "";
+  const BTN = { slides: "Пройти", video: "Смотреть", longread: "Читать" };
+  const LABEL = { slides: "Слайды", video: "Видео", longread: "Статья" };
+  let cards = "";
+  courses.forEach((c, ci) => {
+    const mods = c.modules.map((m, mi) => {
+      const kind = m.kind || "slides";
+      return `<div class="edu-mod">` +
+        `<div class="edu-mod-info"><span class="edu-mod-title">${esc(m.title || LABEL[kind] || "")}</span>` +
+        `<span class="edu-mod-kind">${esc(LABEL[kind] || "")}</span></div>` +
+        `<div class="edu-mod-right"><span class="edu-badge">не пройдено</span>` +
+        `<button type="button" class="edu-go" data-edu-launch data-course="${ci}" data-module="${mi}">${esc(BTN[kind] || "Открыть")}</button></div>` +
+        `</div>`;
+    }).join("");
+    cards += `<div class="edu-course">` +
+      `<div class="edu-head"><span class="edu-tag">Обучение</span><h2 class="edu-title">${esc(c.title)}</h2>` +
+      (c.subtitle ? `<div class="edu-sub">${esc(c.subtitle)}</div>` : "") + `</div>` +
+      `<div class="edu-mods">${mods}</div></div>`;
+  });
+  const json = JSON.stringify(courses).replace(/</g, "\\u003c");
+  return `<section class="edu">${cards}<script type="application/json" id="courses-data">${json}</script></section>`;
+}
+
 /** Внутренний HTML <main class="product-shell"> — крошка + верх + секции. */
 export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
   const imgs = p.images || [];
@@ -222,5 +248,6 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
 
   return `${crumbs(trail)}
   <div class="product-top"><div class="product-main-card">${gallery}${info}</div>${buybox}</div>
+  ${educationBlock(p)}
   ${tabs}`;
 }
