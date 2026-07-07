@@ -107,7 +107,7 @@ ${og}
       <input class="search-input" type="search" name="q" placeholder="Найти по названию или артикулу" aria-label="Поиск по каталогу">
     </form>
     <div class="hcontact"><a class="hphone" href="tel:+79313181319">+7 (931) 318-13-19</a><span class="hhours">ПН-ПТ с 10:00 до 20:00</span></div>
-    <div class="hactions"><span class="acct" title="Личный кабинет — скоро"><img src="${SITE_BASE}/ic-user.svg" alt="" width="24" height="24"></span><span class="cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart.svg" alt="" width="24" height="24"><span class="cart-t">Корзина</span><b class="cart-badge">1</b></span></div>
+    <div class="hactions"><div class="acct" id="auth-slot" data-api="${API_BASE}"><a class="auth-login" href="#"><img src="${SITE_BASE}/ic-user.svg" alt="" width="24" height="24"><span>Войти</span></a></div><span class="cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart.svg" alt="" width="24" height="24"><span class="cart-t">Корзина</span><b class="cart-badge">1</b></span></div>
   </div>
 </header>
 <nav class="mainnav">
@@ -128,6 +128,7 @@ ${content}
 </footer>
 <script src="${SITE_BASE}/catalog-menu.js" defer></script>
 <script src="${SITE_BASE}/search.js" defer></script>
+<script src="${SITE_BASE}/auth.js" defer></script>
 </body>
 </html>
 `;
@@ -174,10 +175,27 @@ function productPage(p, categoryTrail) {
   const hydrate = `<script type="module">
 import { productMain } from "${SITE_BASE}/render-product.js";
 const CATEGORY_TRAIL = ${trailJson};
-fetch(${JSON.stringify(API_BASE)} + "/api/products/${p.slug}/", { headers: { Accept: "application/json" } })
-  .then(r => r.ok ? r.json() : null)
-  .then(d => { if (d) { const m = document.querySelector(".product-shell"); if (m) m.innerHTML = productMain(d, ${JSON.stringify(SITE_BASE)}, CATEGORY_TRAIL); } })
-  .catch(() => {});
+const API = ${JSON.stringify(API_BASE)};
+const SITE = ${JSON.stringify(SITE_BASE)};
+const SLUG = ${JSON.stringify(p.slug)};
+async function renderProduct() {
+  let d = null;
+  try { const r = await fetch(API + "/api/products/" + SLUG + "/", { headers: { Accept: "application/json" } }); d = r.ok ? await r.json() : null; } catch (e) {}
+  if (!d) return;
+  const auth = window.ProfiAuth;
+  if (auth && auth.token) {
+    try {
+      const pr = await fetch(API + "/api/products/" + SLUG + "/pricing/", { headers: { Accept: "application/json", Authorization: "Bearer " + auth.token } });
+      if (pr.ok) { const pd = await pr.json(); d.offers = pd.offers; d.price_from = pd.price_from; }
+    } catch (e) {}
+  }
+  const role = (auth && auth.activeRole) || null;
+  const m = document.querySelector(".product-shell");
+  if (m) m.innerHTML = productMain(d, SITE, CATEGORY_TRAIL, role);
+}
+renderProduct();
+window.addEventListener("profi:auth", renderProduct);
+window.addEventListener("profi:role", renderProduct);
 </script>`;
 
   const content = `<main class="product-shell">${productMain(p, SITE_BASE, trail)}</main>
@@ -482,7 +500,7 @@ function collectCategories(nodes) {
   return out;
 }
 async function copyStatic() {
-  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js", "catalog-menu.js", "search.js", "ic-user.svg", "ic-cart.svg", "ic-cart-sm.svg", "ic-caret.svg", "ic-burger.svg", "ic-cat-tools.svg", "ic-cat-materials.svg", "ic-cat-equipment.svg", "ic-stock.svg", "ic-delivery.svg", "ic-bonus.svg", "banner-devices.png"]) {
+  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js", "catalog-menu.js", "search.js", "auth.js", "ic-user.svg", "ic-cart.svg", "ic-cart-sm.svg", "ic-caret.svg", "ic-burger.svg", "ic-cat-tools.svg", "ic-cat-materials.svg", "ic-cat-equipment.svg", "ic-stock.svg", "ic-delivery.svg", "ic-bonus.svg", "banner-devices.png"]) {
     const src = path.join(ROOT, f);
     if (existsSync(src)) await copyFile(src, path.join(OUT, f));
   }

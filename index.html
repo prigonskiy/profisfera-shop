@@ -20,7 +20,7 @@
       <input class="search-input" type="search" name="q" placeholder="Найти по названию или артикулу" aria-label="Поиск по каталогу">
     </form>
     <div class="hcontact"><a class="hphone" href="tel:+79313181319">+7 (931) 318-13-19</a><span class="hhours">ПН-ПТ с 10:00 до 20:00</span></div>
-    <div class="hactions"><span class="acct" title="Личный кабинет — скоро"><img src="ic-user.svg" alt="" width="24" height="24"></span><span class="cart" title="Корзина — скоро"><img src="ic-cart.svg" alt="" width="24" height="24"><span class="cart-t">Корзина</span><b class="cart-badge">1</b></span></div>
+    <div class="hactions"><div class="acct" id="auth-slot" data-api="https://profisfera-pim.ru"><a class="auth-login" href="#"><img src="ic-user.svg" alt="" width="24" height="24"><span>Войти</span></a></div><span class="cart" title="Корзина — скоро"><img src="ic-cart.svg" alt="" width="24" height="24"><span class="cart-t">Корзина</span><b class="cart-badge">1</b></span></div>
   </div>
 </header>
 <nav class="mainnav">
@@ -70,5 +70,6 @@
 <script src="app.js"></script>
 <script src="catalog-menu.js" defer></script>
 <script src="search.js" defer></script>
+<script src="auth.js" defer></script>
 </body>
 </html>

@@ -69,7 +69,7 @@ export const fmtPrice = (v) => {
 };
 
 // Компактный блок покупки для сайдбара: сегменты пилюлями (CSS-only) + условия стопкой.
-export function purchaseSidebar(p) {
+export function purchaseSidebar(p, activeRole) {
   const order = ["individuals", "clinics", "distributors", "government"];
   const byCh = {};
   (p.offers || []).forEach((o) => {
@@ -81,10 +81,12 @@ export function purchaseSidebar(p) {
   const chans = order.filter((c) => byCh[c]);
   if (!chans.length) return "";
 
+  let activeIdx = activeRole ? chans.indexOf(activeRole) : 0;
+  if (activeIdx < 0) activeIdx = 0;
   let radios = "", pills = "", panels = "";
   chans.forEach((c, i) => {
     const grp = byCh[c];
-    radios += `<input type="radio" name="pseg" id="pseg-${i}" class="bb-radio"${i === 0 ? " checked" : ""}>`;
+    radios += `<input type="radio" name="pseg" id="pseg-${i}" class="bb-radio"${i === activeIdx ? " checked" : ""}>`;
     pills += `<label class="bb-pill" for="pseg-${i}">${esc(grp.name)}</label>`;
     const opts = grp.rows.map((t) => {
       const pack = t.unit_base_qty > 1 ? ` · ${t.unit_base_qty} шт в упаковке` : "";
@@ -102,7 +104,7 @@ export function purchaseSidebar(p) {
 }
 
 /** Внутренний HTML <main class="product-shell"> — крошка + верх + секции. */
-export function productMain(p, SITE_BASE, categoryTrail) {
+export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
   const imgs = p.images || [];
   const main = mainImage(p);
 
@@ -171,7 +173,7 @@ export function productMain(p, SITE_BASE, categoryTrail) {
   const bbPrice = p.price_from ? `от ${fmtPrice(p.price_from)}` : "Цена по запросу";
   const buybox = `<aside class="buybox">` +
     `<div class="bb-price">${bbPrice}</div>` +
-    purchaseSidebar(p) +
+    purchaseSidebar(p, activeRole) +
     `<button type="button" class="bb-cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart-sm.svg" alt="" width="14" height="13"><span>В корзину</span></button>` +
     `<ul class="bb-feats">` +
       `<li><img src="${SITE_BASE}/ic-delivery.svg" alt="" width="14" height="14"><span>Доставка от 1 дня</span></li>` +
