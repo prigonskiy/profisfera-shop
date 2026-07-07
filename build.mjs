@@ -49,7 +49,7 @@ async function fetchList(apiPath) {
 }
 
 /* утилиты вёрстки и рендер тела товара — общий модуль (его же грузит браузер) */
-import { esc, stripHtml, mainImage, productMain, crumbs } from "./render-product.js";
+import { esc, stripHtml, mainImage, productMain, crumbs, fmtPrice } from "./render-product.js";
 
 /* ---------- общий каркас страницы ---------- */
 // --- иконки разделов навигации (по названию верхней категории) ---
@@ -140,7 +140,7 @@ function productTile(p) {
     : `<div class="card-img"><span class="noimg">без фото</span></div>`;
   const art = p.manufacturer_sku ? `<div class="card-sku">Артикул: ${esc(p.manufacturer_sku)}</div>` : "";
   const brand = p.brand ? `<div class="card-brand">${esc(p.brand)}</div>` : "";
-  return `<a class="card pcard" href="${SITE_BASE}/product/${esc(p.slug)}/">${ph}<div class="card-body">${art}<div class="card-price">Цена по запросу</div><div class="card-name">${esc(p.name)}</div>${brand}<div class="card-delivery"><img src="${SITE_BASE}/ic-delivery.svg" alt="" width="14" height="14"><span>Доставка от 1 дня</span></div></div><span class="btn-cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart-sm.svg" alt="" width="14" height="13"><span>В корзину</span></span></a>`;
+  return `<a class="card pcard" href="${SITE_BASE}/product/${esc(p.slug)}/">${ph}<div class="card-body">${art}<div class="card-price">${p.price_from ? "от " + fmtPrice(p.price_from) : "Цена по запросу"}</div><div class="card-name">${esc(p.name)}</div>${brand}<div class="card-delivery"><img src="${SITE_BASE}/ic-delivery.svg" alt="" width="14" height="14"><span>Доставка от 1 дня</span></div></div><span class="btn-cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart-sm.svg" alt="" width="14" height="13"><span>В корзину</span></span></a>`;
 }
 function grid(products, emptyText) {
   if (!products.length) return `<div class="state"><h3>Товаров пока нет</h3><p>${esc(emptyText || "")}</p></div>`;

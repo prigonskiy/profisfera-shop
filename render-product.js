@@ -57,6 +57,51 @@ export function specValue(ch) {
 }
 export const mainImage = (p) => (p.images && p.images[0] ? p.images[0].image : p.thumbnail || null);
 
+// Цена «1 234,56 ₽» (неразрывные пробелы; копейки — только если есть)
+export const fmtPrice = (v) => {
+  const n = parseFloat(v);
+  if (isNaN(n)) return "";
+  let rub = Math.floor(Math.abs(n));
+  let kop = Math.round((Math.abs(n) - rub) * 100);
+  if (kop === 100) { rub += 1; kop = 0; }
+  const s = String(rub).replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
+  return (n < 0 ? "\u2212" : "") + s + (kop > 0 ? "," + String(kop).padStart(2, "0") : "") + "\u00A0\u20bd";
+};
+
+// Блок «Как купить»: сегменты (каналы) как CSS-only вкладки, внутри — условия.
+export function buyBlock(p, SITE_BASE) {
+  const order = ["individuals", "clinics", "distributors", "government"];
+  const byCh = {};
+  (p.offers || []).forEach((o) => {
+    (o.terms || []).forEach((t) => {
+      (byCh[t.channel] = byCh[t.channel] || { name: t.channel_display, rows: [] })
+        .rows.push(Object.assign({}, t, { in_stock: o.in_stock }));
+    });
+  });
+  const chans = order.filter((c) => byCh[c]);
+  if (!chans.length) return "";
+
+  let radios = "", tabs = "", panels = "";
+  chans.forEach((c, i) => {
+    const grp = byCh[c];
+    radios += `<input type="radio" name="pseg" id="pseg-${i}" class="buy-radio"${i === 0 ? " checked" : ""}>`;
+    tabs += `<label class="buy-tab" for="pseg-${i}">${esc(grp.name)}</label>`;
+    const rows = grp.rows.map((t) => {
+      const unit = esc(t.unit_name) + (t.unit_base_qty > 1 ? ` <span class="bt-mult">упаковка ${t.unit_base_qty} шт</span>` : "");
+      const stock = t.in_stock ? `<span class="bt-in">в наличии</span>` : `<span class="bt-out">под заказ</span>`;
+      return `<tr><td>${unit}</td><td class="bt-price">${fmtPrice(t.price)}</td>` +
+        `<td class="bt-pp">${fmtPrice(t.per_piece)}/шт</td><td>от ${t.min_qty}</td><td>${t.step}</td><td>${stock}</td></tr>`;
+    }).join("");
+    panels += `<div class="buy-panel"><table class="buy-table"><thead><tr>` +
+      `<th>Форма покупки</th><th>Цена</th><th>За штуку</th><th>Мин.</th><th>Шаг</th><th>Наличие</th></tr></thead>` +
+      `<tbody>${rows}</tbody></table></div>`;
+  });
+  const from = p.price_from ? `<span class="buy-from">от ${fmtPrice(p.price_from)}</span>` : "";
+  return `<div class="buy"><div class="buy-head"><span class="buy-title">Как купить</span>${from}</div>` +
+    radios + `<div class="buy-tabs">${tabs}</div><div class="buy-panels">${panels}</div>` +
+    `<div class="buy-note">Демо-режим: показаны все каналы продаж. Оформление заказа появится позже.</div></div>`;
+}
+
 /** Внутренний HTML <main class="product-shell"> — крошка + верх + секции. */
 export function productMain(p, SITE_BASE, categoryTrail) {
   const imgs = p.images || [];
@@ -112,6 +157,9 @@ export function productMain(p, SITE_BASE, categoryTrail) {
     info += vrows;
   }
 
+  // как купить — цены по сегментам (демо: все каналы)
+  info += buyBlock(p, SITE_BASE);
+
   // характеристики + идентификаторы
   const charRows = (p.characteristics || []).map((c) =>
     `<tr><td>${esc(c.name)}</td><td>${specValue(c)}</td></tr>`);
@@ -122,13 +170,17 @@ export function productMain(p, SITE_BASE, categoryTrail) {
   if (charRows.length) info += `<div class="p-chars"><div class="p-vlabel">Характеристики</div><table class="ctable"><tbody>${charRows.join("")}</tbody></table></div>`;
   info += `</div>`;
 
-  // блок покупки (заглушки: цена, доставка, бонусы, наличие, корзина)
+  // блок покупки (сайдбар): цена «от», доставка, бонусы, наличие, корзина
+  const anyStock = (p.offers || []).some((o) => o.in_stock);
+  const hasOffers = (p.offers || []).some((o) => (o.terms || []).length);
+  const bbPrice = p.price_from ? `от ${fmtPrice(p.price_from)}` : "Цена по запросу";
+  const bbStock = hasOffers ? (anyStock ? "В наличии" : "Под заказ") : "Наличие уточняйте";
   const buybox = `<aside class="buybox">` +
-    `<div class="bb-price">Цена по запросу</div>` +
+    `<div class="bb-price">${bbPrice}</div>` +
     `<ul class="bb-feats">` +
       `<li><img src="${SITE_BASE}/ic-delivery.svg" alt="" width="14" height="14"><span>Доставка от 1 дня</span></li>` +
       `<li><img src="${SITE_BASE}/ic-bonus.svg" alt="" width="13" height="13"><span>Бонусы за каждый заказ</span></li>` +
-      `<li class="bb-stock"><span>Наличие уточняйте</span></li>` +
+      `<li class="bb-stock"><span>${bbStock}</span></li>` +
     `</ul>` +
     `<button type="button" class="bb-cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart-sm.svg" alt="" width="14" height="13"><span>В корзину</span></button>` +
   `</aside>`;

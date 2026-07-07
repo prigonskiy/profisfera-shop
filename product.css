@@ -80,3 +80,32 @@
 /* бренд-ссылка в шапке карточки товара */
 .brandlink-a{display:inline-block;text-decoration:none;margin-bottom:6px}
 .brandlink-a:hover{color:var(--primary)}
+
+/* Как купить — сегменты продаж (CSS-only вкладки) */
+.buy{border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px 18px;margin:18px 0}
+.buy-head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px}
+.buy-title{font-size:16px;font-weight:700}
+.buy-from{color:var(--primary);font-weight:800;font-size:18px}
+.buy-radio{position:absolute;opacity:0;pointer-events:none}
+.buy-tabs{display:flex;flex-wrap:wrap;gap:18px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.buy-tab{padding:8px 2px;cursor:pointer;color:var(--muted);font-weight:600;border-bottom:2px solid transparent;margin-bottom:-1px;font-size:14px}
+.buy-tab:hover{color:var(--ink)}
+.buy-panel{display:none}
+#pseg-0:checked ~ .buy-panels .buy-panel:nth-of-type(1),
+#pseg-1:checked ~ .buy-panels .buy-panel:nth-of-type(2),
+#pseg-2:checked ~ .buy-panels .buy-panel:nth-of-type(3),
+#pseg-3:checked ~ .buy-panels .buy-panel:nth-of-type(4){display:block}
+#pseg-0:checked ~ .buy-tabs .buy-tab:nth-of-type(1),
+#pseg-1:checked ~ .buy-tabs .buy-tab:nth-of-type(2),
+#pseg-2:checked ~ .buy-tabs .buy-tab:nth-of-type(3),
+#pseg-3:checked ~ .buy-tabs .buy-tab:nth-of-type(4){color:var(--primary);border-bottom-color:var(--primary)}
+.buy-table{width:100%;border-collapse:collapse;font-size:14px}
+.buy-table th{text-align:left;color:var(--muted);font-weight:600;font-size:12px;padding:6px 10px;border-bottom:1px solid var(--line)}
+.buy-table td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.bt-mult{color:var(--muted);font-size:12px}
+.bt-price{font-weight:700;white-space:nowrap}
+.bt-pp{color:var(--muted);white-space:nowrap}
+.bt-in{color:#1a7f37}
+.bt-out{color:var(--muted)}
+.buy-note{color:var(--muted);font-size:12px;margin-top:12px}
+@media (max-width:560px){.buy-table th:nth-child(4),.buy-table td:nth-child(4),.buy-table th:nth-child(5),.buy-table td:nth-child(5){display:none}}
