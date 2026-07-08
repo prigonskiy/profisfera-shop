@@ -41,7 +41,7 @@
 .ctable.logi{margin-top:18px}
 
 /* карточка покупки */
-.buybox{position:sticky;top:96px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow)}
+.buybox{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow)}
 .bb-price{font-size:26px;font-weight:800;color:var(--primary);margin-bottom:16px}
 .bb-feats{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-direction:column;gap:10px}
 .bb-feats li{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
@@ -69,7 +69,7 @@
 @media (max-width:980px){
   .product-top{grid-template-columns:1fr}
   .product-main-card{grid-template-columns:1fr;gap:20px}
-  .pgallery,.buybox{position:static}
+  .pgallery,.product-side{position:static}
   .pgallery{flex-direction:column-reverse}
   .pthumbs{flex-direction:row;flex-wrap:wrap}
 }
@@ -107,21 +107,23 @@
 .buybox .bb-cart{width:100%;justify-content:center}
 .bb-demo{color:var(--muted);font-size:11px;text-align:center;margin-top:12px}
 
-/* --- Обучение: блок на карточке --- */
-.edu{margin:22px 0}
-.edu-course{border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:16px}
-.edu-head{margin-bottom:14px}
-.edu-tag{display:inline-block;background:var(--primary);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px}
-.edu-title{font-size:20px;margin:8px 0 2px}
-.edu-sub{color:var(--muted);font-size:14px}
-.edu-mods{display:flex;flex-direction:column;gap:8px}
-.edu-mod{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px}
-.edu-mod-info{display:flex;flex-direction:column;gap:2px;min-width:0}
-.edu-mod-title{font-weight:600}
-.edu-mod-kind{font-size:12px;color:var(--muted)}
-.edu-mod-right{display:flex;align-items:center;gap:12px;flex:none}
-.edu-badge{font-size:11px;color:var(--muted);background:rgba(128,128,128,.12);padding:3px 9px;border-radius:999px;white-space:nowrap}
-.edu-go{background:var(--primary);color:#fff;border:0;border-radius:8px;padding:8px 16px;font-weight:600;cursor:pointer;white-space:nowrap}
+/* --- Обучение: блок в правой колонке (компактно) --- */
+.product-side{display:flex;flex-direction:column;gap:18px;position:sticky;top:96px}
+.edu{margin:0}
+.edu-course{border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:12px}
+.edu-course:last-child{margin-bottom:0}
+.edu-head{margin-bottom:12px}
+.edu-tag{display:inline-block;background:var(--primary);color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:999px}
+.edu-title{font-size:16px;line-height:1.3;margin:8px 0 2px}
+.edu-sub{color:var(--muted);font-size:13px}
+.edu-mods{display:flex;flex-direction:column;gap:10px}
+.edu-mod{border:1px solid var(--line);border-radius:10px;padding:12px}
+.edu-mod-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.edu-star{width:22px;height:22px;flex:none;opacity:.4}
+.edu-mod-title{font-weight:600;font-size:14px;min-width:0}
+.edu-mod-sub{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--muted)}
+.edu-badge{font-size:11px;color:var(--muted);background:rgba(128,128,128,.12);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.edu-go{display:block;width:100%;background:var(--primary);color:#fff;border:0;border-radius:8px;padding:9px;font-weight:600;cursor:pointer}
 .edu-go:hover{filter:brightness(1.05)}
 
 /* --- Обучение: лайтбокс-плеер --- */

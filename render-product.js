@@ -109,15 +109,15 @@ function educationBlock(p) {
   if (!courses.length) return "";
   const BTN = { slides: "Пройти", video: "Смотреть", longread: "Читать" };
   const LABEL = { slides: "Слайды", video: "Видео", longread: "Статья" };
+  const STAR = '<svg class="edu-star" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="16" cy="16" r="14" stroke="#CD7F32" stroke-width="2"/><path d="M16 8l2 6h6.3l-5.1 3.7 1.9 6-5.1-3.7-5.1 3.7 1.9-6L7.7 14H14L16 8z" fill="#CD7F32"/></svg>';
   let cards = "";
   courses.forEach((c, ci) => {
     const mods = c.modules.map((m, mi) => {
       const kind = m.kind || "slides";
       return `<div class="edu-mod">` +
-        `<div class="edu-mod-info"><span class="edu-mod-title">${esc(m.title || LABEL[kind] || "")}</span>` +
-        `<span class="edu-mod-kind">${esc(LABEL[kind] || "")}</span></div>` +
-        `<div class="edu-mod-right"><span class="edu-badge">не пройдено</span>` +
-        `<button type="button" class="edu-go" data-edu-launch data-course="${ci}" data-module="${mi}">${esc(BTN[kind] || "Открыть")}</button></div>` +
+        `<div class="edu-mod-top">${STAR}<span class="edu-mod-title">${esc(m.title || LABEL[kind] || "")}</span></div>` +
+        `<div class="edu-mod-sub"><span class="edu-mod-kind">${esc(LABEL[kind] || "")}</span><span class="edu-badge">не пройдено</span></div>` +
+        `<button type="button" class="edu-go" data-edu-launch data-course="${ci}" data-module="${mi}">${esc(BTN[kind] || "Открыть")}</button>` +
         `</div>`;
     }).join("");
     cards += `<div class="edu-course">` +
@@ -247,7 +247,6 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
   trail.push({ name: p.name });
 
   return `${crumbs(trail)}
-  <div class="product-top"><div class="product-main-card">${gallery}${info}</div>${buybox}</div>
-  ${educationBlock(p)}
+  <div class="product-top"><div class="product-main-card">${gallery}${info}</div><div class="product-side">${buybox}${educationBlock(p)}</div></div>
   ${tabs}`;
 }
