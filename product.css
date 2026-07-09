@@ -507,14 +507,14 @@
 
 .edu {
   margin: 0;
-  background: var(--surface);
 }
 
 .edu-course {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
-  margin-bottom: 12px
+  margin-bottom: 12px;
+  background: var(--surface);
 }
 
 .edu-course:last-child {
