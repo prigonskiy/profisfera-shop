@@ -114,9 +114,10 @@ function educationBlock(p) {
   courses.forEach((c, ci) => {
     const mods = c.modules.map((m, mi) => {
       const kind = m.kind || "slides";
+      const kindLabel = m.kind_display || LABEL[kind] || "";
       return `<div class="edu-mod">` +
-        `<div class="edu-mod-top">${STAR}<span class="edu-mod-title">${esc(m.title || LABEL[kind] || "")}</span></div>` +
-        `<div class="edu-mod-sub"><span class="edu-mod-kind">${esc(LABEL[kind] || "")}</span><span class="edu-badge">не пройдено</span></div>` +
+        `<div class="edu-mod-top">${STAR}<span class="edu-mod-title">${esc(m.title || kindLabel)}</span></div>` +
+        `<div class="edu-mod-sub"><span class="edu-mod-kind">${esc(kindLabel)}</span><span class="edu-badge">не пройдено</span></div>` +
         `<button type="button" class="edu-go" data-edu-launch data-course="${ci}" data-module="${mi}">${esc(BTN[kind] || "Открыть")}</button>` +
         `</div>`;
     }).join("");

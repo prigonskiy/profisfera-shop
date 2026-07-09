@@ -30,12 +30,12 @@
     }
   }
 
-  function openLb(innerHtml, navHtml) {
+  function openLb(innerHtml, navHtml, wide) {
     closeLb();
     prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     lb = document.createElement("div");
-    lb.className = "edu-lb";
+    lb.className = "edu-lb" + (wide ? " edu-lb--wide" : "");
     lb.innerHTML =
       '<div class="edu-lb-inner">' +
         '<button type="button" class="edu-lb-close" aria-label="Закрыть">\u00d7</button>' +
@@ -46,6 +46,31 @@
     lb.querySelector(".edu-lb-close").addEventListener("click", closeLb);
     lb.addEventListener("click", function (e) { if (e.target === lb) closeLb(); });
     document.addEventListener("keydown", onKey);
+  }
+
+  // --- встроенный пакет курса (iSpring/SCORM-экспорт) → iframe по контракту PIM ---
+  function wireLeadBtn() {
+    var b = lb && lb.querySelector(".edu-lead-btn");
+    if (b) b.addEventListener("click", function () { b.textContent = "Спасибо!"; b.disabled = true; });
+  }
+  function embedLeadFooter() {
+    if (loggedIn()) return "";
+    return '<div class="edu-embed-lead">' +
+      '<span class="edu-embed-lead-txt">Сохраните прогресс и получайте новые материалы</span>' +
+      '<input type="email" class="edu-lead-email" placeholder="Email">' +
+      '<button type="button" class="edu-lead-btn">Подписаться</button>' +
+      "</div>";
+  }
+  function openEmbed(mod) {
+    var url = mod.embed_url || "";
+    var inner = url
+      ? '<div class="edu-embed"><iframe src="' + esc(url) + '" ' +
+          'sandbox="allow-scripts allow-same-origin allow-popups" ' +
+          'allow="fullscreen" allowfullscreen loading="lazy"></iframe></div>'
+      : '<div class="edu-empty">Материал недоступен.</div>';
+    openLb(inner, embedLeadFooter(), true);
+    state = { type: "embed" };
+    wireLeadBtn();
   }
 
   // --- видео ---
@@ -117,9 +142,10 @@
   }
 
   function openModule(mod) {
-    if (mod.kind === "video") openVideo(mod);
+    if (mod.embed_url) openEmbed(mod);              // новый формат: встроенный пакет курса
+    else if (mod.kind === "video") openVideo(mod);
     else if (mod.kind === "longread") openLongread(mod);
-    else openSlides(mod);
+    else openSlides(mod);                            // легаси: слайды из JSON-массива
   }
 
   document.addEventListener("click", function (e) {
