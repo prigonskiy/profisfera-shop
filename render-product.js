@@ -109,21 +109,64 @@ function educationBlock(p) {
   if (!courses.length) return "";
   const BTN = { slides: "Пройти", video: "Смотреть", longread: "Читать" };
   const LABEL = { slides: "Слайды", video: "Видео", longread: "Статья" };
-  const STAR = '<svg class="edu-star" viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="16" cy="16" r="14" stroke="#CD7F32" stroke-width="2"/><path d="M16 8l2 6h6.3l-5.1 3.7 1.9 6-5.1-3.7-5.1 3.7 1.9-6L7.7 14H14L16 8z" fill="#CD7F32"/></svg>';
+  // Иконки действия справа в карточке модуля: play — слайды/видео, книга — лонгрид.
+  const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.54.84l10-6.5a1 1 0 0 0 0-1.68l-10-6.5A1 1 0 0 0 8 5.5z"/></svg>';
+  const BOOK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.5 5.2 8 4.5 5 4.5v13c3 0 5.5.7 7 2 1.5-1.3 4-2 7-2v-13c-3 0-5.5.7-7 2z"/><path d="M12 6.5v13"/></svg>';
+  const ICON = { slides: PLAY, video: PLAY, longread: BOOK };
+  // Индикатор прохождения модуля: пустой кружок — не пройдено, зелёная галочка — пройдено.
+  const MOD_DONE = '<svg class="edu-mstat is-done" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#1a7f37"/><path d="M7.5 12.5l3 3 6-6.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const MOD_TODO = '<svg class="edu-mstat" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/></svg>';
+  const modStatus = (done) => (done ? MOD_DONE : MOD_TODO);
+
+  // Шкала уровней над модулями: бронза → серебро → золото. Горит своим цветом только
+  // полученный уровень, неполученный — бледный. achieved = сколько уровней получено.
+  // Пока СТАТИКА (прогресс/пользователи на паузе — «Слой 3»); формально получены бронза и серебро → achieved = 2.
+  // При «Слое 3»: achieved заменить на прогресс пользователя (напр. из p.user_progress).
+  const progress = (function () {
+    const achieved = 2;
+    const tierStar = (color, on) =>
+      `<svg class="edu-tier-star${on ? " on" : ""}" viewBox="0 0 32 32" fill="none" aria-hidden="true">` +
+      `<circle cx="16" cy="16" r="14" stroke="${color}" stroke-width="2"/>` +
+      `<path d="M16 8l2 6h6.3l-5.1 3.7 1.9 6-5.1-3.7-5.1 3.7 1.9-6L7.7 14H14L16 8z" fill="${color}"/></svg>`;
+    const tiers = [
+      { name: "Бронза", sub: "Базовый уровень", hint: "Вы достигли базового уровня", color: "#CD7F32" },
+      { name: "Серебро", sub: "Средний уровень", hint: "Вы достигли среднего уровня", color: "#9CA3AF" },
+      { name: "Золото", sub: "Продвинутый уровень", hint: "Вы достигли продвинутого уровня", color: "#D4AF37" },
+    ];
+    const cells = tiers.map((t, i) => {
+      const on = i < achieved;                        // уровень получен
+      const cur = achieved > 0 && i === achieved - 1; // текущий (высший полученный)
+      return `<div class="edu-tier${on ? " on" : ""}${cur ? " is-current" : ""}">` +
+        tierStar(t.color, on) +
+        `<span class="edu-tier-name">${esc(t.name)}</span>` +
+        `<span class="edu-tier-sub">${esc(t.sub)}</span></div>`;
+    }).join("");
+    const top = achieved > 0 ? tiers[Math.min(achieved, tiers.length) - 1] : null;
+    const statusName = top ? top.name.toLowerCase() : "не начато";
+    const statusHint = top ? top.hint : "Пройдите курс, чтобы получить первый бейдж";
+    return `<div class="edu-tiers">${cells}</div>` +
+      `<div class="edu-status"><span class="edu-status-main">Текущий статус: <b>${esc(statusName)}</b></span>` +
+      `<span class="edu-status-hint">${esc(statusHint)}</span></div>`;
+  })();
+
   let cards = "";
   courses.forEach((c, ci) => {
     const mods = c.modules.map((m, mi) => {
       const kind = m.kind || "slides";
       const kindLabel = m.kind_display || LABEL[kind] || "";
+      const done = m.completed === true || m.is_completed === true; // «Слой 3»: реальный статус; пока false
       return `<div class="edu-mod">` +
-        `<div class="edu-mod-top">${STAR}<span class="edu-mod-title">${esc(m.title || kindLabel)}</span></div>` +
-        `<div class="edu-mod-sub"><span class="edu-mod-kind">${esc(kindLabel)}</span><span class="edu-badge">не пройдено</span></div>` +
-        `<button type="button" class="edu-go" data-edu-launch data-course="${ci}" data-module="${mi}">${esc(BTN[kind] || "Открыть")}</button>` +
+        `<div class="edu-mod-body">` +
+        `<div class="edu-mod-top">${modStatus(done)}<span class="edu-mod-title">${esc(m.title || kindLabel)}</span></div>` +
+        `<div class="edu-mod-sub"><span class="edu-mod-kind">${esc(kindLabel)}</span></div>` +
+        `</div>` +
+        `<button type="button" class="edu-go" data-edu-launch data-course="${ci}" data-module="${mi}" aria-label="${esc(BTN[kind] || "Открыть")}" title="${esc(BTN[kind] || "Открыть")}">${ICON[kind] || PLAY}</button>` +
         `</div>`;
     }).join("");
     cards += `<div class="edu-course">` +
       `<div class="edu-head"><span class="edu-tag">Обучение</span><h2 class="edu-title">${esc(c.title)}</h2>` +
       (c.subtitle ? `<div class="edu-sub">${esc(c.subtitle)}</div>` : "") + `</div>` +
+      progress +
       `<div class="edu-mods">${mods}</div></div>`;
   });
   const json = JSON.stringify(courses).replace(/</g, "\\u003c");
