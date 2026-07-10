@@ -55,7 +55,11 @@ export function specValue(ch) {
   if (v === null || v === undefined || v === "") return "—";
   return esc(v) + (ch.unit ? " " + esc(ch.unit) : "");
 }
-export const mainImage = (p) => (p.images && p.images[0] ? p.images[0].image : p.thumbnail || null);
+export const mainImage = (p) => {
+  const im = p.images && p.images[0];
+  if (im) return im.main || im.original || im.thumb || null;
+  return p.thumbnail || null;
+};
 
 // Цена «1 234,56 ₽» (неразрывные пробелы; копейки — только если есть)
 export const fmtPrice = (v) => {
@@ -177,16 +181,19 @@ function educationBlock(p) {
 export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
   const imgs = p.images || [];
   const main = mainImage(p);
+  const first = imgs[0] || null;
+  const hasZoom = !!(first && first.original);
+  const ZOOM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>';
 
-  // галерея: вертикальные превью + главное фото
+  // галерея: превью (thumb 160) + главное (main 1200). Клик по превью — свап, клик по фото — оригинал.
   let thumbs = "";
   if (imgs.length > 1) {
     thumbs = `<div class="pthumbs">` + imgs.map((im, i) =>
-      `<span class="pthumb${i === 0 ? " active" : ""}"><img src="${esc(im.image)}" alt="${esc(im.alt || "")}" loading="lazy"></span>`
+      `<span class="pthumb${i === 0 ? " active" : ""}" data-main="${esc(im.main || im.original || "")}" data-original="${esc(im.original || "")}"><img src="${esc(im.thumb || im.main || "")}" alt="${esc(im.alt || "")}" loading="lazy"></span>`
     ).join("") + `</div>`;
   }
   const gallery = main
-    ? `<div class="pgallery">${thumbs}<div class="pmain"><img src="${esc(main)}" alt="${esc(p.name)}"></div></div>`
+    ? `<div class="pgallery">${thumbs}<div class="pmain${hasZoom ? " pmain--zoom" : ""}"${hasZoom ? ` data-original="${esc(first.original)}"` : ""}><img src="${esc(main)}" alt="${esc(p.name)}">${hasZoom ? `<span class="pmain-zoom">${ZOOM}</span>` : ""}</div></div>`
     : `<div class="pgallery"><div class="pmain pmain--empty">без фото</div></div>`;
 
   // инфо-колонка

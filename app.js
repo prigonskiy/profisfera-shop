@@ -242,7 +242,7 @@ function renderProduct(p){
   const general=(p.characteristics||[]).filter(c=>c.is_global);
   const cat=(p.characteristics||[]).filter(c=>!c.is_global);
   const imgs=p.images||[];
-  const main = imgs[0] ? imgs[0].image : (p.thumbnail||null);
+  const main = imgs[0] ? (imgs[0].main || imgs[0].original || imgs[0].thumb) : (p.thumbnail||null);
 
   let html="<div class='dr-head'><button class='dr-close' onclick='closeDrawer()'>×</button>";
   html+= p.brand && p.brand.name ? "<button class='brandlink' onclick=\"closeDrawer(); openBrand('"+p.brand.slug+"')\">"+esc(p.brand.name)+"</button>" : "";
@@ -256,7 +256,7 @@ function renderProduct(p){
   // галерея
   if(main){
     html+="<div class='dr-gallery'><div class='dr-main'><img id='drMain' src='"+esc(main)+"' alt='"+esc(p.name)+"'></div>";
-    if(imgs.length>1){ html+="<div class='dr-thumbs'>"+imgs.map(im=>"<img src='"+esc(im.image)+"' alt='"+esc(im.alt||"")+"' onclick=\"document.getElementById('drMain').src=this.src\">").join("")+"</div>"; }
+    if(imgs.length>1){ html+="<div class='dr-thumbs'>"+imgs.map(im=>"<img src='"+esc(im.thumb||im.main||"")+"' alt='"+esc(im.alt||"")+"' onclick=\"document.getElementById('drMain').src='"+esc(im.main||im.original||im.thumb||"")+"'\">").join("")+"</div>"; }
     html+="</div>";
   }
   if(p.short_description){ html+="<p style='color:var(--muted);margin:8px 0 0'>"+esc(p.short_description)+"</p>"; }

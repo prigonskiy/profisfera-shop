@@ -197,6 +197,39 @@ async function renderProduct() {
 renderProduct();
 window.addEventListener("profi:auth", renderProduct);
 window.addEventListener("profi:role", renderProduct);
+
+// Галерея товара: свап превью и просмотр оригинала. Делегируем на document —
+// переживает перерисовку .product-shell при гидрате/смене роли.
+function openOriginal(src) {
+  if (!src) return;
+  var lb = document.createElement("div");
+  lb.className = "imglb";
+  var img = document.createElement("img");
+  img.src = src; img.alt = "";
+  lb.appendChild(img);
+  function close() { lb.remove(); document.removeEventListener("keydown", onKey); }
+  function onKey(ev) { if (ev.key === "Escape") close(); }
+  lb.addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
+  document.body.appendChild(lb);
+}
+document.addEventListener("click", function (e) {
+  var th = e.target.closest && e.target.closest(".pthumb");
+  if (th) {
+    var g = th.closest(".pgallery"); if (!g) return;
+    var pm = g.querySelector(".pmain"), img = pm && pm.querySelector("img");
+    if (img && th.dataset.main) img.src = th.dataset.main;
+    if (pm) {
+      if (th.dataset.original) { pm.dataset.original = th.dataset.original; pm.classList.add("pmain--zoom"); }
+      else { delete pm.dataset.original; pm.classList.remove("pmain--zoom"); }
+    }
+    g.querySelectorAll(".pthumb").forEach(function (t) { t.classList.remove("active"); });
+    th.classList.add("active");
+    return;
+  }
+  var zoom = e.target.closest && e.target.closest(".pmain--zoom");
+  if (zoom && zoom.dataset.original) openOriginal(zoom.dataset.original);
+});
 </script>`;
 
   const content = `<main class="product-shell">${productMain(p, SITE_BASE, trail)}</main>
