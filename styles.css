@@ -500,3 +500,6 @@ a.card{text-decoration:none;color:inherit}
 .auth-role{font-size:12.5px;padding:4px 7px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}
 .auth-role-1{font-size:12px;color:var(--muted)}
 .auth-logout{font-size:12px;color:var(--muted);background:none;border:0;cursor:pointer;text-decoration:underline;white-space:nowrap}
+
+/* SVG-флаг страны производства (карточка товара + быстрый просмотр) */
+.flag{width:20px;height:auto;vertical-align:middle;margin-right:4px;border:1px solid var(--line);border-radius:2px}

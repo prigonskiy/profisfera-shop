@@ -15,7 +15,7 @@ function buildMainnavCats(roots){
 
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (t,c)=>{const e=document.createElement(t); if(c) e.className=c; return e;};
-function flag(code){ if(!code||code.length!==2) return ""; return code.toUpperCase().replace(/./g,c=>String.fromCodePoint(127397+c.charCodeAt(0))); }
+function flag(code){ if(!code||code.length!==2) return ""; var cc=code.toLowerCase(),up=code.toUpperCase(); return "<img class='flag' src='https://flagcdn.com/"+cc+".svg' alt='"+up+"' title='"+up+"' loading='lazy' onerror='this.replaceWith(this.alt)'>"; }
 function esc(s){ const d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; }
 function fmtPrice(v){ const n=parseFloat(v); if(isNaN(n)) return ""; let rub=Math.floor(Math.abs(n)); let kop=Math.round((Math.abs(n)-rub)*100); if(kop===100){rub+=1;kop=0;} const s=String(rub).replace(/\B(?=(\d{3})+(?!\d))/g,"\u00A0"); return (n<0?"\u2212":"")+s+(kop>0?","+String(kop).padStart(2,"0"):"")+"\u00A0\u20bd"; }
 function fmtDate(iso){ const m=String(iso||"").match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}.${m[2]}.${m[1]}`:""; }

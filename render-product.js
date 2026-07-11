@@ -45,7 +45,9 @@ export const docValidity = (d) =>
   d.is_perpetual ? "Бессрочный" : d.valid_until ? "Действует до " + fmtDate(d.valid_until) : "";
 export function flag(code) {
   if (!code || code.length !== 2) return "";
-  return code.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
+  const cc = code.toLowerCase(), up = code.toUpperCase();
+  // SVG-флаг (flagcdn). onerror → деградирует в текст кода, если картинка не загрузилась.
+  return `<img class="flag" src="https://flagcdn.com/${cc}.svg" alt="${up}" title="${up}" loading="lazy" onerror="this.replaceWith(this.alt)">`;
 }
 export function specValue(ch) {
   let v = ch.value;
