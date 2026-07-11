@@ -49,7 +49,7 @@ async function fetchList(apiPath) {
 }
 
 /* утилиты вёрстки и рендер тела товара — общий модуль (его же грузит браузер) */
-import { esc, stripHtml, mainImage, productMain, crumbs, fmtPrice } from "./render-product.js";
+import { esc, stripHtml, mainImage, productMain, productJsonLd, crumbs, fmtPrice } from "./render-product.js";
 
 /* ---------- общий каркас страницы ---------- */
 // --- иконки разделов навигации (по названию верхней категории) ---
@@ -73,14 +73,23 @@ function buildMainNav() {
     `<span class="nav-cat-link nav-soon" title="Скоро">Справочник</span>`;
 }
 
-function layout({ title, description, canonical, image, bodyClass, content }) {
+function layout({ title, description, canonical, image, imageAlt, jsonLd, bodyClass, content }) {
   const desc = stripHtml(description).slice(0, 300);
   const og = [
     `<meta property="og:type" content="website">`,
+    `<meta property="og:site_name" content="ПрофиСфера">`,
+    `<meta property="og:locale" content="ru_RU">`,
     `<meta property="og:title" content="${esc(title)}">`,
     desc ? `<meta property="og:description" content="${esc(desc)}">` : "",
     `<meta property="og:url" content="${esc(canonical)}">`,
     image ? `<meta property="og:image" content="${esc(image)}">` : "",
+    image ? `<meta property="og:image:alt" content="${esc(imageAlt || title)}">` : "",
+  ].filter(Boolean).join("\n");
+  const tw = [
+    `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}">`,
+    `<meta name="twitter:title" content="${esc(title)}">`,
+    desc ? `<meta name="twitter:description" content="${esc(desc)}">` : "",
+    image ? `<meta name="twitter:image" content="${esc(image)}">` : "",
   ].filter(Boolean).join("\n");
   return `<!DOCTYPE html>
 <html lang="ru">
@@ -91,6 +100,8 @@ function layout({ title, description, canonical, image, bodyClass, content }) {
 ${desc ? `<meta name="description" content="${esc(desc)}">` : ""}
 <link rel="canonical" href="${esc(canonical)}">
 ${og}
+${tw}
+${jsonLd || ""}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://flagcdn.com" crossorigin>
@@ -238,7 +249,9 @@ ${hydrate}`;
   return layout({
     title: `${p.name} — ПрофиСфера`,
     description: p.short_description || stripHtml(p.full_description),
-    canonical, image: main, bodyClass: "page-product", content,
+    canonical, image: main, imageAlt: p.name,
+    jsonLd: productJsonLd(p, SITE_BASE, trail),
+    bodyClass: "page-product", content,
   });
 }
 

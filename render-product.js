@@ -180,6 +180,44 @@ function educationBlock(p) {
 }
 
 /** Внутренний HTML <main class="product-shell"> — крошка + верх + секции. */
+/** JSON-LD для страницы товара: Product (+ Brand) и BreadcrumbList в одном @graph.
+ *  Крошки строятся той же логикой, что видимые (categoryTrail → фолбэк на p.category),
+ *  чтобы разметка совпадала с контентом. Все URL абсолютны (SITE_BASE уже с origin). */
+export function productJsonLd(p, SITE_BASE, categoryTrail) {
+  const url = `${SITE_BASE}/product/${p.slug}/`;
+  const product = { "@type": "Product", "@id": url + "#product", name: p.name, url };
+  const desc = stripHtml(p.short_description || p.full_description || "").slice(0, 5000);
+  if (desc) product.description = desc;
+  const imgs = (p.images || []).map((im) => im.main || im.original || im.thumb).filter(Boolean);
+  if (imgs.length) product.image = imgs;
+  if (p.brand && p.brand.name) {
+    product.brand = { "@type": "Brand", name: p.brand.name };
+    if (p.brand.logo) product.brand.logo = p.brand.logo;
+  }
+  if (p.sku) product.sku = p.sku;
+  if (p.manufacturer_sku) product.mpn = p.manufacturer_sku; // артикул производителя
+  if (p.gtin) product.gtin13 = p.gtin;
+  if (p.category && p.category.name) product.category = p.category.name;
+  if (p.country_of_origin && p.country_of_origin.name)
+    product.countryOfOrigin = { "@type": "Country", name: p.country_of_origin.name };
+  // Offer/AggregateRating намеренно НЕ добавляем: цены на паузе, отзывов нет.
+  // Размечать пустую/выдуманную цену нельзя — риск ручных санкций.
+
+  const items = [{ name: "Каталог", url: SITE_BASE + "/" }];
+  if (categoryTrail && categoryTrail.length)
+    categoryTrail.forEach((c) => items.push({ name: c.name, url: SITE_BASE + "/c/" + c.slug + "/" }));
+  else if (p.category && p.category.slug)
+    items.push({ name: p.category.name, url: SITE_BASE + "/c/" + p.category.slug + "/" });
+  items.push({ name: p.name, url });
+  const breadcrumb = {
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((it, i) => ({ "@type": "ListItem", position: i + 1, name: it.name, item: it.url })),
+  };
+
+  const data = { "@context": "https://schema.org", "@graph": [product, breadcrumb] };
+  return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
+}
+
 export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
   const imgs = p.images || [];
   const main = mainImage(p);
