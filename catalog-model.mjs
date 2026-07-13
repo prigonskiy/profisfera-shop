@@ -52,6 +52,7 @@ export function buildCatalogModel(config, products, catName) {
         slug: d.slug,
         title: d.title,
         seoTitle: d.seo_title || d.title,
+        seoIntro: d.seo_intro || "",
         order: d.order ?? 0,
         url: `/${sec.slug}/${d.slug}/`,
         total: prods.length,

@@ -48,9 +48,9 @@
       "order": 1,
       "audience": "stomatolog",
       "directions": [
-        { "slug": "terapiya", "title": "Терапия и реставрация", "facet": "terapiya", "order": 1, "seo_title": "Материалы и инструменты для терапевтической стоматологии" },
+        { "slug": "terapiya", "title": "Терапия и реставрация", "facet": "terapiya", "order": 1, "seo_title": "Материалы и инструменты для терапевтической стоматологии", "seo_intro": "Всё для терапевтического приёма и прямой реставрации: композиты, адгезивные системы, стеклоиономерные цементы, изолирующие материалы и расходники. Товары проверенных брендов с регистрацией Росздравнадзора." },
         { "slug": "endodontiya", "title": "Эндодонтия", "facet": "endodontiya", "order": 2, "seo_title": "Всё для эндодонтии" },
-        { "slug": "ortopediya", "title": "Ортопедия", "facet": "ortopediya", "order": 3, "seo_title": "Материалы для ортопедической стоматологии" },
+        { "slug": "ortopediya", "title": "Ортопедия", "facet": "ortopediya", "order": 3, "seo_title": "Материалы для ортопедической стоматологии", "seo_intro": "Материалы и инструменты для ортопедического приёма: слепочные массы, временные материалы, цементы для фиксации и вспомогательные расходники для несъёмного и съёмного протезирования." },
         { "slug": "hirurgiya-implantologiya", "title": "Хирургия и имплантология", "facet": ["hirurgiya", "implantologiya"], "order": 4, "seo_title": "Хирургия и имплантология", "_comment": "склейка двух направлений PIM (hirurgiya + implantologiya) в один раздел витрины" },
         { "slug": "ortodontiya", "title": "Ортодонтия", "facet": "ortodontiya", "order": 5, "seo_title": "Ортодонтические материалы и инструменты" },
         { "slug": "parodontologiya", "title": "Пародонтология", "facet": "parodontologiya", "order": 6, "seo_title": "Всё для пародонтологии" },

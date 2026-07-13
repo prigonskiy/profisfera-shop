@@ -51,7 +51,7 @@ async function fetchList(apiPath) {
 
 /* утилиты вёрстки и рендер тела товара — общий модуль (его же грузит браузер) */
 import { esc, stripHtml, mainImage, productMain, productJsonLd, crumbs, fmtPrice } from "./render-product.js";
-import { buildCatalogModel, catalogMenuData } from "./catalog-model.mjs";
+import { buildCatalogModel, catalogMenuData, buildDirectionLookup, resolveHomeDirection, sectionByAudience } from "./catalog-model.mjs";
 
 /* ---------- общий каркас страницы ---------- */
 // --- иконки разделов навигации (по названию верхней категории) ---
@@ -540,6 +540,7 @@ export function directionPage(section, dir, minSlice, thinMode) {
   const content = `<main class="page-shell">
   ${crumbs(trail)}
   <div class="main-head"><div class="main-head-l"><h1>${esc(dir.title)}</h1><div class="count"><b>${dir.total}</b> товаров</div></div></div>
+  ${dir.seoIntro ? `<p class="dir-intro">${esc(dir.seoIntro)}</p>` : ""}
   ${blocks || `<div class="state"><h3>Товаров пока нет</h3></div>`}
 </main>`;
   return layout({
@@ -712,10 +713,53 @@ async function main() {
   NAV_HTML = buildMainNav(tree);
   const cats = collectCategories(tree);
   const trailBySlug = {};
-  cats.forEach((c) => { trailBySlug[c.slug] = c.trail; });
+  const catNameBySlug = {};
+  cats.forEach((c) => { trailBySlug[c.slug] = c.trail; catNameBySlug[c.slug] = c.name; });
 
   // товары
   const list = await fetchList("/api/products/");
+
+  // внешний каталог: модель + индексы (нужны уже для «домашних» крошек товара)
+  const catalogConfig = JSON.parse(await readFile(path.join(ROOT, "catalog-sections-config.json"), "utf8"));
+  const catName = (slug) => catNameBySlug[slug] || slug;
+  const model = buildCatalogModel(catalogConfig, list, catName);
+  const minSlice = (catalogConfig.settings && catalogConfig.settings.min_products_slice) ?? 3;
+  const thinMode = (catalogConfig.settings && catalogConfig.settings.thin_slice_mode) || "link_to_canonical";
+  const dirLookup = buildDirectionLookup(catalogConfig);
+  // какие срезы «направление×категория» реально генерятся (толстые) — для ссылки в крошке
+  const sliceThick = new Set();
+  for (const sec of model.sections)
+    for (const d of sec.directions)
+      for (const g of d.groups)
+        if (g.products.length >= minSlice) sliceThick.add(`${sec.slug}|${d.slug}|${g.catSlug}`);
+
+  const slugOf = (x) => (x && (x.slug || x)) || null;
+  /** «Домашние» крошки карточки (root-relative url'ы): для товара с направлениями —
+   *  Раздел → Направление → Категория (по приоритету breadcrumb_priority); без
+   *  направлений — Раздел(аудитория) → Категория; фолбэк — только категория. */
+  function homeTrail(detail) {
+    const catSlug = detail.category && detail.category.slug;
+    const catNm = (detail.category && detail.category.name) || (catSlug && catName(catSlug)) || "";
+    const norm = { directions: (detail.directions || []).map(slugOf).filter(Boolean) };
+    const home = resolveHomeDirection(norm, catalogConfig, dirLookup);
+    const items = [];
+    if (home) {
+      items.push({ name: home.sectionTitle, url: `/${home.sectionSlug}/` });
+      items.push({ name: home.dirTitle, url: `/${home.sectionSlug}/${home.dirSlug}/` });
+      if (catSlug) {
+        const thick = sliceThick.has(`${home.sectionSlug}|${home.dirSlug}|${catSlug}`);
+        items.push({ name: catNm, url: thick ? `/${home.sectionSlug}/${home.dirSlug}/${catSlug}/` : `/c/${catSlug}/` });
+      }
+    } else {
+      const aud = slugOf((detail.audiences || [])[0]);
+      const sec = aud ? sectionByAudience(catalogConfig, aud) : null;
+      if (sec) items.push({ name: sec.title, url: `/${sec.slug}/` });
+      if (catSlug) items.push({ name: catNm, url: `/c/${catSlug}/` });
+    }
+    if (!items.length && catSlug) items.push({ name: catNm, url: `/c/${catSlug}/` });
+    return items;
+  }
+
   const charsBySlug = {}; // slug -> { code: value } (значения характеристик для фильтров)
   let n = 0;
   for (const item of list) {
@@ -724,7 +768,7 @@ async function main() {
     const map = {};
     (detail.characteristics || []).forEach((c) => { map[c.code] = c.value; });
     charsBySlug[item.slug] = map;
-    const trail = (detail.category && trailBySlug[detail.category.slug]) || [];
+    const trail = homeTrail(detail);
     const dir = path.join(OUT, "product", item.slug);
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, "index.html"), productPage(detail, trail), "utf8");
@@ -789,8 +833,6 @@ async function main() {
   await writeFile(path.join(OUT, "tree.json"), JSON.stringify(tree), "utf8");
 
   // индекс поиска (клиентский) + страница результатов /search/
-  const catNameBySlug = {};
-  cats.forEach((c) => { catNameBySlug[c.slug] = c.name; });
   const searchIndex = list.filter((p) => p.slug).map((p) => ({
     slug: p.slug,
     name: p.name || "",
@@ -829,11 +871,7 @@ async function main() {
   }
 
   // ---------- внешний каталог: разделы «для кого» → направления → срезы ----------
-  const catalogConfig = JSON.parse(await readFile(path.join(ROOT, "catalog-sections-config.json"), "utf8"));
-  const catName = (slug) => catNameBySlug[slug] || slug;
-  const model = buildCatalogModel(catalogConfig, list, catName);
-  const minSlice = (catalogConfig.settings && catalogConfig.settings.min_products_slice) ?? 3;
-  const thinMode = (catalogConfig.settings && catalogConfig.settings.thin_slice_mode) || "link_to_canonical";
+  // (catalogConfig / model / minSlice / thinMode собраны выше — до крошек товара)
   let nsec = 0, ndir = 0, nslice = 0;
   for (const section of model.sections) {
     const sdir = path.join(OUT, section.slug);

@@ -205,7 +205,7 @@ export function productJsonLd(p, SITE_BASE, categoryTrail) {
 
   const items = [{ name: "Каталог", url: SITE_BASE + "/" }];
   if (categoryTrail && categoryTrail.length)
-    categoryTrail.forEach((c) => items.push({ name: c.name, url: SITE_BASE + "/c/" + c.slug + "/" }));
+    categoryTrail.forEach((c) => items.push({ name: c.name, url: SITE_BASE + (c.url || ("/c/" + c.slug + "/")) }));
   else if (p.category && p.category.slug)
     items.push({ name: p.category.name, url: SITE_BASE + "/c/" + p.category.slug + "/" });
   items.push({ name: p.name, url });
@@ -333,7 +333,7 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
   `</div>`;
 
   const trail = [{ name: "Каталог", href: SITE_BASE + "/" }];
-  if (categoryTrail && categoryTrail.length) categoryTrail.forEach((c) => trail.push({ name: c.name, href: SITE_BASE + "/c/" + c.slug + "/" }));
+  if (categoryTrail && categoryTrail.length) categoryTrail.forEach((c) => trail.push({ name: c.name, href: SITE_BASE + (c.url || ("/c/" + c.slug + "/")) }));
   else if (p.category && p.category.slug) trail.push({ name: p.category.name, href: SITE_BASE + "/c/" + p.category.slug + "/" });
   trail.push({ name: p.name });
 

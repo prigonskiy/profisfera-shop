@@ -519,3 +519,5 @@ a.card{text-decoration:none;color:inherit}
 .dir-card:hover{border-color:var(--primary)}
 .dir-card-title{font-size:15px;font-weight:600;color:var(--ink)}
 .dir-card-count{font-size:13px;color:var(--muted)}
+
+.dir-intro{max-width:760px;margin:0 0 24px;font-size:15px;line-height:1.6;color:var(--muted)}
