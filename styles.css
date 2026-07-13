@@ -503,3 +503,19 @@ a.card{text-decoration:none;color:inherit}
 
 /* SVG-флаг страны производства (карточка товара + быстрый просмотр) */
 .flag{width:20px;height:auto;vertical-align:middle;margin-right:4px;border:1px solid var(--line);border-radius:2px}
+
+/* ---------- внешний каталог: баннер контекста, группы направления, карточки ---------- */
+.ctx-banner{margin:0 0 16px;padding:12px 16px;background:rgba(20,98,255,.06);border:1px solid rgba(20,98,255,.15);border-radius:12px;font-size:14px;color:var(--ink);line-height:1.5}
+.ctx-banner a{color:var(--primary);font-weight:600;white-space:nowrap;margin-left:6px}
+.dir-group{margin:0 0 28px}
+.dir-group-head{display:flex;align-items:baseline;gap:10px;margin:0 0 12px}
+.dir-group-title{font-size:18px;font-weight:700;margin:0}
+.dir-group-title a{color:var(--ink);text-decoration:none}
+.dir-group-title a:hover{color:var(--primary)}
+.dir-group-count{font-size:13px;color:var(--muted)}
+.dir-group-all{display:inline-block;margin-top:12px;font-size:14px;font-weight:600;color:var(--primary);text-decoration:none}
+.dir-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.dir-card{display:flex;flex-direction:column;gap:4px;padding:16px 18px;background:#fff;border:1px solid var(--line);border-radius:12px;text-decoration:none;transition:border-color .15s}
+.dir-card:hover{border-color:var(--primary)}
+.dir-card-title{font-size:15px;font-weight:600;color:var(--ink)}
+.dir-card-count{font-size:13px;color:var(--muted)}

@@ -18,6 +18,7 @@
  */
 import { mkdir, writeFile, copyFile, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const API_BASE = (process.env.API_BASE || "https://profisfera-pim.ru").replace(/\/$/, "");
@@ -50,6 +51,7 @@ async function fetchList(apiPath) {
 
 /* утилиты вёрстки и рендер тела товара — общий модуль (его же грузит браузер) */
 import { esc, stripHtml, mainImage, productMain, productJsonLd, crumbs, fmtPrice } from "./render-product.js";
+import { buildCatalogModel, catalogMenuData } from "./catalog-model.mjs";
 
 /* ---------- общий каркас страницы ---------- */
 // --- иконки разделов навигации (по названию верхней категории) ---
@@ -499,6 +501,152 @@ ${hasFilters ? `<script src="${SITE_BASE}/category-filters.js" defer></script>` 
   });
 }
 
+/* ---------- внешний каталог: направления и контекстные срезы ---------- */
+const DIR_PREVIEW = 8; // сколько плиток показывать в группе на странице направления
+
+/** Куда ведёт листовая группа с страницы направления и генерить ли срез.
+ *  Толстая (>= minSlice) → свой срез. Тонкая → по thin_slice_mode:
+ *  link_to_canonical → на каноническую категорию, hide → не показывать. */
+function groupTarget(section, dir, g, minSlice, thinMode) {
+  const thick = g.products.length >= minSlice;
+  if (thick) return { url: `${SITE_BASE}/${section.slug}/${dir.slug}/${g.catSlug}/`, slice: true, show: true };
+  if (thinMode === "hide") return { url: null, slice: false, show: false };
+  return { url: `${SITE_BASE}/c/${g.catSlug}/`, slice: false, show: true }; // link_to_canonical
+}
+
+export function directionPage(section, dir, minSlice, thinMode) {
+  const trail = [
+    { name: "Каталог", href: `${SITE_BASE}/` },
+    { name: section.title, href: `${SITE_BASE}/${section.slug}/` },
+    { name: dir.title },
+  ];
+  const blocks = dir.groups.map((g) => {
+    const t = groupTarget(section, dir, g, minSlice, thinMode);
+    if (!t.show) return "";
+    const head = t.url
+      ? `<h2 class="dir-group-title"><a href="${t.url}">${esc(g.catName)}</a></h2>`
+      : `<h2 class="dir-group-title">${esc(g.catName)}</h2>`;
+    const preview = g.products.slice(0, DIR_PREVIEW);
+    const more = (t.url && g.products.length > preview.length)
+      ? `<a class="dir-group-all" href="${t.url}">Все ${g.products.length} \u2192</a>`
+      : "";
+    return `<section class="dir-group">
+      <div class="dir-group-head">${head}<span class="dir-group-count">${g.products.length}</span></div>
+      <div class="grid">${preview.map(productTile).join("")}</div>
+      ${more}
+    </section>`;
+  }).join("");
+
+  const content = `<main class="page-shell">
+  ${crumbs(trail)}
+  <div class="main-head"><div class="main-head-l"><h1>${esc(dir.title)}</h1><div class="count"><b>${dir.total}</b> товаров</div></div></div>
+  ${blocks || `<div class="state"><h3>Товаров пока нет</h3></div>`}
+</main>`;
+  return layout({
+    title: `${dir.seoTitle || dir.title} — ПрофиСфера`,
+    description: `${dir.seoTitle || dir.title}. Каталог ПрофиСфера.`,
+    canonical: `${SITE_BASE}/${section.slug}/${dir.slug}/`,
+    image: null, bodyClass: "page-direction", content,
+  });
+}
+
+/** Сайдбар среза: соседние листовые категории этого направления (контекст-навигация). */
+function directionCatNav(section, dir, currentCatSlug, minSlice, thinMode) {
+  const items = dir.groups.map((g) => {
+    const t = groupTarget(section, dir, g, minSlice, thinMode);
+    if (!t.show) return "";
+    const cur = g.catSlug === currentCatSlug ? ' class="current" aria-current="page"' : "";
+    const href = t.url || `${SITE_BASE}/c/${g.catSlug}/`;
+    return `<li><a href="${href}"${cur}>${esc(g.catName)}<span class="cat-count">${g.products.length}</span></a></li>`;
+  }).join("");
+  return `<nav class="cat-nav" aria-label="Категории направления">
+      <div class="side-title">${esc(dir.title)}</div>
+      <a class="cn-up" href="${SITE_BASE}/${section.slug}/${dir.slug}/">\u2190 Все категории направления</a>
+      <ul class="cn-list">${items}</ul>
+    </nav>`;
+}
+
+/** Контекстный срез «направление × листовая категория». fullCount — товаров в
+ *  полной категории (весь каталог). Если срез == полная категория → canonical на
+ *  каноническую страницу и без баннера. */
+export function directionCategoryPage(section, dir, group, fullCount, filterData, minSlice, thinMode) {
+  const products = group.products;
+  const canonSame = products.length >= fullCount; // срез покрывает всю категорию
+  const ownUrl = `${SITE_BASE}/${section.slug}/${dir.slug}/${group.catSlug}/`;
+  const canonUrl = canonSame ? `${SITE_BASE}/c/${group.catSlug}/` : ownUrl;
+
+  const banner = canonSame ? "" :
+    `<div class="ctx-banner">Показаны товары для направления «${esc(dir.title)}» — <b>${products.length}</b> из ${fullCount} в категории. <a href="${SITE_BASE}/c/${group.catSlug}/">Показать все «${esc(group.catName)}» (${fullCount})</a></div>`;
+
+  const gridHtml = products.length
+    ? `<div class="grid" id="cat-grid">${products.map(productTile).join("")}</div>`
+    : `<div class="state"><h3>Товаров пока нет</h3></div>`;
+  const hasFilters = (filterData.filters && filterData.filters.length) || (filterData.brands && filterData.brands.length > 1);
+  const nav = directionCatNav(section, dir, group.catSlug, minSlice, thinMode);
+  const filtersBlock = hasFilters ? `<div class="filters" id="filters"></div>` : "";
+  const sidebar = `<aside class="cat-sidebar" id="cat-sidebar">
+      <button type="button" class="cat-sidebar-close" aria-label="Закрыть">×</button>
+      ${nav}${filtersBlock}
+    </aside>`;
+  const mobilebar = `<div class="cat-mobilebar">
+    <button type="button" class="cat-mtoggle" data-target="cat">Категории</button>
+    ${hasFilters ? `<button type="button" class="cat-mtoggle" data-target="filters">Фильтры</button>` : ""}
+  </div>`;
+  const filtersJson = hasFilters
+    ? `<script type="application/json" id="category-filters-data">${JSON.stringify(filterData).replace(/</g, "\\u003c")}</script>`
+    : "";
+
+  const trail = [
+    { name: "Каталог", href: `${SITE_BASE}/` },
+    { name: section.title, href: `${SITE_BASE}/${section.slug}/` },
+    { name: dir.title, href: `${SITE_BASE}/${section.slug}/${dir.slug}/` },
+    { name: group.catName },
+  ];
+  const content = `<main class="page-shell">
+  ${crumbs(trail)}
+  <div class="main-head"><div class="main-head-l"><h1>${esc(group.catName)}</h1><div class="count" id="cat-count"><b>${products.length}</b> товаров</div></div><div class="sort-stub" title="Сортировка — скоро"><span>По популярности</span><i class="caret-down"></i></div></div>
+  ${banner}
+  ${mobilebar}
+  <div class="cat-layout">
+    ${sidebar}
+    <div class="cat-products">${gridHtml}</div>
+  </div>
+  ${filtersJson}
+</main>
+<script src="${SITE_BASE}/category-nav.js" defer></script>
+${hasFilters ? `<script src="${SITE_BASE}/category-filters.js" defer></script>` : ""}`;
+  return layout({
+    title: canonSame ? `${group.catName} — ПрофиСфера` : `${group.catName} — ${dir.title} — ПрофиСфера`,
+    description: `${group.catName}: ${dir.seoTitle || dir.title}. Каталог ПрофиСфера.`,
+    canonical: canonUrl, image: null, bodyClass: "page-category page-slice", content,
+  });
+}
+
+export function sectionPage(section, minSlice, thinMode) {
+  const trail = [{ name: "Каталог", href: `${SITE_BASE}/` }, { name: section.title }];
+  let body;
+  if (section.directions.length) {
+    body = `<div class="dir-cards">` + section.directions.map((d) =>
+      `<a class="dir-card" href="${SITE_BASE}/${section.slug}/${d.slug}/"><span class="dir-card-title">${esc(d.title)}</span><span class="dir-card-count">${d.total} товаров</span></a>`
+    ).join("") + `</div>`;
+  } else {
+    // без направлений (общая медицина / пациент): листовые группы → каноническая категория
+    body = (section.audienceGroups || []).map((g) =>
+      `<section class="dir-group"><div class="dir-group-head"><h2 class="dir-group-title"><a href="${SITE_BASE}/c/${g.catSlug}/">${esc(g.catName)}</a></h2><span class="dir-group-count">${g.products.length}</span></div><div class="grid">${g.products.slice(0, DIR_PREVIEW).map(productTile).join("")}</div>${g.products.length > DIR_PREVIEW ? `<a class="dir-group-all" href="${SITE_BASE}/c/${g.catSlug}/">Все ${g.products.length} \u2192</a>` : ""}</section>`
+    ).join("");
+  }
+  const content = `<main class="page-shell">
+  ${crumbs(trail)}
+  <div class="main-head"><div class="main-head-l"><h1>${esc(section.title)}</h1><div class="count"><b>${section.total}</b> товаров</div></div></div>
+  ${body || `<div class="state"><h3>Товаров пока нет</h3></div>`}
+</main>`;
+  return layout({
+    title: `${section.title} — ПрофиСфера`,
+    description: `${section.title}. Каталог ПрофиСфера.`,
+    canonical: `${SITE_BASE}/${section.slug}/`, image: null, bodyClass: "page-section", content,
+  });
+}
+
 /* ---------- серверный рендер каталога (index.html) ---------- */
 async function bakeIndex(products) {
   let html = await readFile(path.join(ROOT, "index.html"), "utf8");
@@ -680,15 +828,67 @@ async function main() {
     nc++;
   }
 
+  // ---------- внешний каталог: разделы «для кого» → направления → срезы ----------
+  const catalogConfig = JSON.parse(await readFile(path.join(ROOT, "catalog-sections-config.json"), "utf8"));
+  const catName = (slug) => catNameBySlug[slug] || slug;
+  const model = buildCatalogModel(catalogConfig, list, catName);
+  const minSlice = (catalogConfig.settings && catalogConfig.settings.min_products_slice) ?? 3;
+  const thinMode = (catalogConfig.settings && catalogConfig.settings.thin_slice_mode) || "link_to_canonical";
+  let nsec = 0, ndir = 0, nslice = 0;
+  for (const section of model.sections) {
+    const sdir = path.join(OUT, section.slug);
+    await mkdir(sdir, { recursive: true });
+    await writeFile(path.join(sdir, "index.html"), sectionPage(section, minSlice, thinMode), "utf8");
+    urls.push(`${SITE_BASE}/${section.slug}/`);
+    nsec++;
+
+    for (const dir of section.directions) {
+      const ddir = path.join(OUT, section.slug, dir.slug);
+      await mkdir(ddir, { recursive: true });
+      await writeFile(path.join(ddir, "index.html"), directionPage(section, dir, minSlice, thinMode), "utf8");
+      urls.push(`${SITE_BASE}/${section.slug}/${dir.slug}/`);
+      ndir++;
+
+      for (const g of dir.groups) {
+        if (g.products.length < minSlice) continue; // тонкий срез не генерим — ведёт на канон /c/
+        // фильтры среза (та же машинерия, что у страницы категории), но только по товарам среза
+        const filters = await getFilters(g.catSlug);
+        const codes = filters.map((f) => f.code);
+        const bset = new Set();
+        const values = {};
+        for (const p of g.products) {
+          const entry = { brand: p.brand || null };
+          if (p.brand) bset.add(p.brand);
+          const ch = charsBySlug[p.slug] || {};
+          for (const code of codes) if (code in ch) entry[code] = ch[code];
+          values[p.slug] = entry;
+        }
+        const filterData = { filters, brands: Array.from(bset).sort(), values };
+        const full = countBySlug[g.catSlug] || g.products.length;
+        const gdir = path.join(OUT, section.slug, dir.slug, g.catSlug);
+        await mkdir(gdir, { recursive: true });
+        await writeFile(path.join(gdir, "index.html"),
+          directionCategoryPage(section, dir, g, full, filterData, minSlice, thinMode), "utf8");
+        // в sitemap только самостоятельные срезы (не canonical на /c/)
+        if (g.products.length < full) urls.push(`${SITE_BASE}/${section.slug}/${dir.slug}/${g.catSlug}/`);
+        nslice++;
+      }
+    }
+  }
+  // данные для клиентского мега-меню (инкремент C)
+  await writeFile(path.join(OUT, "catalog.json"), JSON.stringify(catalogMenuData(model)), "utf8");
+
   // каталог (index) + sitemap + robots
   await writeFile(path.join(OUT, "index.html"), await bakeIndex(list), "utf8");
   await writeFile(path.join(OUT, "sitemap.xml"), sitemap(urls), "utf8");
   await writeFile(path.join(OUT, "robots.txt"), robots(), "utf8");
 
-  console.log(`Готово: товаров ${n}, брендов ${nb} (стр. бренд×категория ${nbc}), категорий ${nc}, всего URL в sitemap ${urls.length}`);
+  console.log(`Готово: товаров ${n}, брендов ${nb} (стр. бренд×категория ${nbc}), категорий ${nc}, внешний каталог: разделов ${nsec}, направлений ${ndir}, срезов ${nslice}, всего URL в sitemap ${urls.length}`);
 }
 
-main().catch((e) => {
-  console.error("Сборка упала:", e.message);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((e) => {
+    console.error("Сборка упала:", e.message);
+    process.exit(1);
+  });
+}
