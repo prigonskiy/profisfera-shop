@@ -1,18 +1,21 @@
 /**
- * Общий мегаменю «Каталог» — для испечённых страниц и SPA-главной.
- * Данные берёт из tree.json (его пишет build.mjs рядом с counts.json).
+ * Общее мегаменю «Каталог» — две ступени внешнего каталога.
+ * Данные берёт из catalog.json (его пишет build.mjs): разделы «для кого» →
+ * направления с их листовыми группами. У каждой группы готовый target-url
+ * (толстый срез → своя страница, тонкий → каноническая /c/).
  * База сайта вычисляется из адреса самого скрипта, поэтому ссылки и fetch
- * работают одинаково на любой глубине страницы (/, /c/x/, /product/x/).
+ * работают одинаково на любой глубине страницы.
  */
 (function () {
   "use strict";
   var BASE = new URL(".", document.currentScript.src).href;
 
-  var tree = null, mega = null, rootsBox = null, colsBox = null;
+  var sections = null, mega = null, rootsBox = null, colsBox = null;
   var activeSlug = null, loading = false;
 
   function esc(s) { var d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
-  function catUrl(slug) { return BASE + "c/" + encodeURIComponent(slug) + "/"; }
+  // url'ы в catalog.json root-relative («/dlya-vracha/...»); BASE уже включает поддиректорию сайта
+  function abs(u) { return BASE + String(u == null ? "" : u).replace(/^\//, ""); }
   function btns() { return Array.prototype.slice.call(document.querySelectorAll(".nav-catalog")); }
 
   function buildShell() {
@@ -29,7 +32,7 @@
     colsBox = mega.querySelector(".cm-cols");
     mega.querySelector(".catalog-mega-backdrop").addEventListener("click", close);
     mega.querySelector(".cm-close").addEventListener("click", close);
-    // наведение/тап по корню — переключает правую панель; сама ссылка ведёт в раздел
+    // наведение/тап по разделу «для кого» — переключает правую панель; ссылка ведёт на лендинг раздела
     rootsBox.addEventListener("mouseover", function (e) {
       var a = e.target.closest ? e.target.closest(".cm-root") : null;
       if (a) setActive(a.getAttribute("data-slug"));
@@ -41,9 +44,14 @@
   }
 
   function renderRoots() {
-    rootsBox.innerHTML = tree.map(function (r) {
-      return '<a class="cm-root" data-slug="' + esc(r.slug) + '" href="' + catUrl(r.slug) + '"><span>' + esc(r.name) + '</span></a>';
+    rootsBox.innerHTML = sections.map(function (s) {
+      return '<a class="cm-root" data-slug="' + esc(s.slug) + '" href="' + abs(s.url) + '"><span>' + esc(s.title) + '</span></a>';
     }).join("");
+  }
+
+  function findSection(slug) {
+    for (var i = 0; i < sections.length; i++) if (sections[i].slug === slug) return sections[i];
+    return null;
   }
 
   function setActive(slug) {
@@ -52,20 +60,29 @@
     Array.prototype.forEach.call(rootsBox.children, function (a) {
       a.classList.toggle("active", a.getAttribute("data-slug") === slug);
     });
-    var root = null;
-    for (var i = 0; i < tree.length; i++) if (tree[i].slug === slug) { root = tree[i]; break; }
-    var kids = (root && root.children) || [];
-    if (!kids.length) {
-      colsBox.innerHTML = '<div class="cm-empty">В этом разделе пока нет подкатегорий.</div>';
-      return;
+    var sec = findSection(slug);
+    if (!sec) { colsBox.innerHTML = ""; return; }
+
+    var html;
+    if (sec.directions && sec.directions.length) {
+      // ступень 2: направления, у каждого — его листовые группы
+      html = sec.directions.map(function (d) {
+        var sub = (d.groups && d.groups.length)
+          ? '<ul>' + d.groups.map(function (g) {
+              return '<li><a href="' + abs(g.url) + '">' + esc(g.name) + '</a></li>';
+            }).join("") + '</ul>'
+          : "";
+        return '<div class="cm-group"><a class="cm-h" href="' + abs(d.url) + '">' + esc(d.title) + '</a>' + sub + '</div>';
+      }).join("");
+    } else if (sec.groups && sec.groups.length) {
+      // раздел без направлений (общая медицина / пациент) — сразу листовые категории
+      html = sec.groups.map(function (g) {
+        return '<div class="cm-group"><a class="cm-h" href="' + abs(g.url) + '">' + esc(g.name) + '</a></div>';
+      }).join("");
+    } else {
+      html = '<div class="cm-empty">В этом разделе пока нет товаров.</div>';
     }
-    colsBox.innerHTML = kids.map(function (c) {
-      var gk = c.children || [];
-      var sub = gk.length
-        ? '<ul>' + gk.map(function (g) { return '<li><a href="' + catUrl(g.slug) + '">' + esc(g.name) + '</a></li>'; }).join("") + '</ul>'
-        : "";
-      return '<div class="cm-group"><a class="cm-h" href="' + catUrl(c.slug) + '">' + esc(c.name) + '</a>' + sub + '</div>';
-    }).join("");
+    colsBox.innerHTML = html;
   }
 
   function position() {
@@ -82,7 +99,7 @@
   }
 
   function open() {
-    if (!tree) { load(); return; } // догрузится и откроется
+    if (!sections) { load(); return; } // догрузится и откроется
     position();
     mega.hidden = false;
     document.body.classList.add("cm-open");
@@ -98,13 +115,13 @@
   function load() {
     if (loading) return;
     loading = true;
-    fetch(BASE + "tree.json", { headers: { Accept: "application/json" } })
+    fetch(BASE + "catalog.json", { headers: { Accept: "application/json" } })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (data) {
-        tree = Array.isArray(data) ? data : [];
+        sections = Array.isArray(data) ? data : [];
         buildShell();
         renderRoots();
-        if (tree.length) setActive(tree[0].slug);
+        if (sections.length) setActive(sections[0].slug);
         loading = false;
         open();
       })

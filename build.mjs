@@ -876,7 +876,7 @@ async function main() {
     }
   }
   // данные для клиентского мега-меню (инкремент C)
-  await writeFile(path.join(OUT, "catalog.json"), JSON.stringify(catalogMenuData(model)), "utf8");
+  await writeFile(path.join(OUT, "catalog.json"), JSON.stringify(catalogMenuData(model, catalogConfig.settings)), "utf8");
 
   // каталог (index) + sitemap + robots
   await writeFile(path.join(OUT, "index.html"), await bakeIndex(list), "utf8");

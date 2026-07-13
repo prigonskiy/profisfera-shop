@@ -120,17 +120,28 @@ export function sectionByAudience(config, audienceSlug) {
 }
 
 /** Лёгкая структура для клиентского мега-меню (пишется в catalog.json).
- *  Без списков товаров — только заголовки, URL и счётчики. */
-export function catalogMenuData(model) {
+ *  Без списков товаров — заголовки, URL (root-relative) и счётчики. У каждой листовой
+ *  группы готовый target-url: толстая (>= min_products_slice) → свой срез, тонкая →
+ *  каноническая /c/ (или скрыта при thin_slice_mode='hide'). */
+export function catalogMenuData(model, settings) {
+  const minSlice = (settings && settings.min_products_slice) ?? 3;
+  const thinMode = (settings && settings.thin_slice_mode) || "link_to_canonical";
+  const groupUrl = (sectionSlug, dirSlug, g) => {
+    if (g.products.length >= minSlice) return `/${sectionSlug}/${dirSlug}/${g.catSlug}/`;
+    if (thinMode === "hide") return null;
+    return `/c/${g.catSlug}/`;
+  };
   return model.sections.map((sec) => ({
     slug: sec.slug, title: sec.title, url: sec.url, total: sec.total,
     directions: sec.directions.map((d) => ({
       slug: d.slug, title: d.title, url: d.url, total: d.total,
-      groups: d.groups.map((g) => ({ slug: g.catSlug, name: g.catName, total: g.products.length })),
+      groups: d.groups
+        .map((g) => ({ slug: g.catSlug, name: g.catName, total: g.products.length, url: groupUrl(sec.slug, d.slug, g) }))
+        .filter((g) => g.url), // hide-режим убирает тонкие
     })),
-    // для разделов без направлений — сразу листовые группы
+    // для разделов без направлений — сразу листовые группы (канон /c/)
     groups: sec.audienceGroups
-      ? sec.audienceGroups.map((g) => ({ slug: g.catSlug, name: g.catName, total: g.products.length }))
+      ? sec.audienceGroups.map((g) => ({ slug: g.catSlug, name: g.catName, total: g.products.length, url: `/c/${g.catSlug}/` }))
       : [],
   }));
 }
