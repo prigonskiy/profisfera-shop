@@ -1,0 +1,108 @@
+{
+  "_comment": "Матрица внешнего каталога. Контракт между PIM и SSG. Slug'и направлений/аудиторий сверены с реальным PIM (сверка от PIM-чата). Поле 'slug' = URL на витрине, 'facet' = реальный slug направления в PIM (может отличаться от URL, напр. estetika-gigiena vs estetika-i-gigiena).",
+  "settings": {
+    "min_products_section": 3,
+    "min_products_slice": 3,
+    "thin_slice_mode": "link_to_canonical",
+    "_thin_slice_mode_options": ["link_to_canonical", "hide"],
+    "min_products_system_slice": 3,
+    "min_products_system_type_page": 4
+  },
+  "compatibility_systems": {
+    "_comment": "ОТЛОЖЕНО: фасет 'Система совместимости' в PIM ещё не готов (задача 6 PIM-handoff). Блок не участвует в генерации до его появления. Значения — черновые примеры.",
+    "groups": [
+      {
+        "slug": "implantatsionnye-sistemy",
+        "title": "Имплантационные системы",
+        "facet_prefix": "implantatsiya",
+        "mount": { "top_section": "dlya-vracha", "direction": "hirurgiya-implantologiya" },
+        "generate_system_type_pages": true,
+        "systems": [
+          { "slug": "straumann-blt", "title": "Straumann BLT", "facet": "implantatsiya-straumann-blt", "order": 1, "_todo": "пример, заменить на реальные системы" },
+          { "slug": "dentium-superline", "title": "Dentium SuperLine", "facet": "implantatsiya-dentium-superline", "order": 2, "_todo": "пример" }
+        ]
+      },
+      {
+        "slug": "ortodonticheskie-sistemy",
+        "title": "Ортодонтические системы",
+        "facet_prefix": "ortodontiya",
+        "mount": { "top_section": "dlya-vracha", "direction": "ortodontiya" },
+        "generate_system_type_pages": false,
+        "systems": [
+          { "slug": "sistema-1", "title": "TODO: название системы", "facet": "ortodontiya-sistema-1", "order": 1, "_todo": "заполнить по планируемому ассортименту" }
+        ]
+      }
+    ],
+    "slice_rules": {
+      "membership": "товар попадает в срез системы только при заполненном фасете; пустой фасет = системонезависимый товар",
+      "visibility": "видимость в срезе системы — в дополнение к видимости по направлениям, не вместо",
+      "breadcrumbs": "путь через систему в домашнюю крошку карточки не попадает",
+      "filters_inside_slice": "фильтра 'система' внутри среза нет; есть 'оригинал/совместимый', платформа, бренд производителя",
+      "canonical_categories": "на канонических страницах категорий добавляется клиентский фильтр по системе"
+    }
+  },
+  "top_sections": [
+    {
+      "slug": "dlya-vracha",
+      "title": "Врачу-стоматологу",
+      "order": 1,
+      "audience": "stomatolog",
+      "directions": [
+        { "slug": "terapiya", "title": "Терапия и реставрация", "facet": "terapiya", "order": 1, "seo_title": "Материалы и инструменты для терапевтической стоматологии" },
+        { "slug": "endodontiya", "title": "Эндодонтия", "facet": "endodontiya", "order": 2, "seo_title": "Всё для эндодонтии" },
+        { "slug": "ortopediya", "title": "Ортопедия", "facet": "ortopediya", "order": 3, "seo_title": "Материалы для ортопедической стоматологии" },
+        { "slug": "hirurgiya-implantologiya", "title": "Хирургия и имплантология", "facet": ["hirurgiya", "implantologiya"], "order": 4, "seo_title": "Хирургия и имплантология", "_comment": "склейка двух направлений PIM (hirurgiya + implantologiya) в один раздел витрины" },
+        { "slug": "ortodontiya", "title": "Ортодонтия", "facet": "ortodontiya", "order": 5, "seo_title": "Ортодонтические материалы и инструменты" },
+        { "slug": "parodontologiya", "title": "Пародонтология", "facet": "parodontologiya", "order": 6, "seo_title": "Всё для пародонтологии" },
+        { "slug": "estetika-gigiena", "title": "Эстетика и гигиена", "facet": "estetika-i-gigiena", "order": 7, "seo_title": "Профессиональная эстетика и гигиена" },
+        { "slug": "obshchestomatologicheskie", "title": "Общестоматологические товары", "facet": "stomatolog-obshchie", "order": 8, "seo_title": "Общестоматологические расходные материалы" },
+        { "slug": "osnashchenie-kabineta", "title": "Оснащение кабинета", "facet": "stomatolog-osnashchenie", "order": 9, "seo_title": "Оснащение стоматологического кабинета" }
+      ]
+    },
+    {
+      "slug": "dlya-tekhnika",
+      "title": "Зубному технику",
+      "order": 2,
+      "audience": "zubnoy-tehnik",
+      "directions": [
+        { "slug": "cad-cam", "title": "CAD/CAM", "facet": "cad-cam", "order": 1, "seo_title": "Материалы и инструменты для CAD/CAM" },
+        { "slug": "metallokeramika", "title": "Металлокерамика", "facet": "metallokeramika", "order": 2, "seo_title": "Всё для металлокерамики" },
+        { "slug": "tselnaya-keramika", "title": "Цельная керамика", "facet": "tselnaya-keramika", "order": 3, "seo_title": "Материалы для цельной керамики" },
+        { "slug": "syomnoe-protezirovanie", "title": "Съёмное протезирование", "facet": "syomnoe-protezirovanie", "order": 4, "seo_title": "Съёмное протезирование" },
+        { "slug": "byugelnoe-i-lityo", "title": "Бюгельные работы и литьё", "facet": "byugelnoe-i-lityo", "order": 5, "seo_title": "Бюгельное протезирование и литьё", "_todo": "СВЕРИТЬ С ФИЛИППОМ: реальное направление PIM, но не было в черновике. Подтвердить название и позицию." },
+        { "slug": "obshchelaboratornye", "title": "Общелабораторные товары", "facet": "tekhnik-obshchie", "order": 6, "seo_title": "Общелабораторные материалы и расходники" },
+        { "slug": "osnashchenie-laboratorii", "title": "Оснащение лаборатории", "facet": "tekhnik-osnashchenie", "order": 7, "seo_title": "Оснащение зуботехнической лаборатории" }
+      ]
+    },
+    {
+      "slug": "obshchaya-meditsina",
+      "title": "Товары общей медицины",
+      "order": 3,
+      "audience": "obshchaya-meditsina",
+      "directions": [],
+      "_comment": "без второй ступени: товары группируются сразу по листовым категориям"
+    },
+    {
+      "slug": "dlya-patsientov",
+      "title": "Для пациентов",
+      "order": 4,
+      "audience": "patsient-domashniy-uhod",
+      "directions": [],
+      "_comment": "без второй ступени: домашний уход, группировка по листовым категориям"
+    }
+  ],
+  "breadcrumb_priority": [
+    "terapiya", "endodontiya", "ortopediya", "hirurgiya", "implantologiya",
+    "ortodontiya", "parodontologiya", "estetika-i-gigiena", "stomatolog-obshchie",
+    "stomatolog-osnashchenie", "cad-cam", "metallokeramika", "tselnaya-keramika",
+    "syomnoe-protezirovanie", "byugelnoe-i-lityo", "tekhnik-obshchie", "tekhnik-osnashchenie"
+  ],
+  "_breadcrumb_rule": "Домашняя крошка карточки = первое направление товара по этому списку. Товары без направлений получают крошку по аудитории (общая медицина / пациент).",
+  "placement_rules": {
+    "_comment": "Правила проставления фасетов контентом (человеком в PIM), не кодом",
+    "rule_1": "Товар используется в 3+ направлениях одной аудитории → фасет 'общие' этой аудитории вместо перечисления",
+    "rule_2": "Товар в 1-2 направлениях → перечислить оба направления явно",
+    "rule_3": "Аудитория выводится из префиксов направлений автоматически; руками — только у товаров без направлений",
+    "rule_4": "Крупное универсальное оборудование → 'оснащение'; специализированное (апекслокатор, печь) → своё направление"
+  }
+}
