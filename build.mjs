@@ -514,34 +514,57 @@ function groupTarget(section, dir, g, minSlice, thinMode) {
   return { url: `${SITE_BASE}/c/${g.catSlug}/`, slice: false, show: true }; // link_to_canonical
 }
 
+/** Блок одной листовой категории на странице направления/группы: заголовок-ссылка
+ *  (на срез или канон) + превью плиток + «Все N →». */
+function leafBlock(section, dir, g, minSlice, thinMode) {
+  const t = groupTarget(section, dir, g, minSlice, thinMode);
+  if (!t.show) return "";
+  const head = t.url
+    ? `<h3 class="dir-group-title"><a href="${t.url}">${esc(g.catName)}</a></h3>`
+    : `<h3 class="dir-group-title">${esc(g.catName)}</h3>`;
+  const preview = g.products.slice(0, DIR_PREVIEW);
+  const more = (t.url && g.products.length > preview.length)
+    ? `<a class="dir-group-all" href="${t.url}">Все ${g.products.length} \u2192</a>`
+    : "";
+  return `<section class="dir-group">
+      <div class="dir-group-head">${head}<span class="dir-group-count">${g.products.length}</span></div>
+      <div class="grid">${preview.map(productTile).join("")}</div>
+      ${more}
+    </section>`;
+}
+
 export function directionPage(section, dir, minSlice, thinMode) {
   const trail = [
     { name: "Каталог", href: `${SITE_BASE}/` },
     { name: section.title, href: `${SITE_BASE}/${section.slug}/` },
     { name: dir.title },
   ];
-  const blocks = dir.groups.map((g) => {
-    const t = groupTarget(section, dir, g, minSlice, thinMode);
-    if (!t.show) return "";
-    const head = t.url
-      ? `<h2 class="dir-group-title"><a href="${t.url}">${esc(g.catName)}</a></h2>`
-      : `<h2 class="dir-group-title">${esc(g.catName)}</h2>`;
-    const preview = g.products.slice(0, DIR_PREVIEW);
-    const more = (t.url && g.products.length > preview.length)
-      ? `<a class="dir-group-all" href="${t.url}">Все ${g.products.length} \u2192</a>`
-      : "";
-    return `<section class="dir-group">
-      <div class="dir-group-head">${head}<span class="dir-group-count">${g.products.length}</span></div>
-      <div class="grid">${preview.map(productTile).join("")}</div>
-      ${more}
+  const leaf = (g) => leafBlock(section, dir, g, minSlice, thinMode);
+  const pres = dir.presentation || { groups: [], tail: dir.leaves };
+  let body;
+  if (pres.groups.length) {
+    // презентационные группы (напр. «Реставрация») + хвост негруппированных
+    body = pres.groups.map((gr) =>
+      `<section class="dir-supergroup">
+      <div class="dir-supergroup-head"><h2 class="dir-supergroup-title"><a href="${SITE_BASE}${gr.url}">${esc(gr.title)}</a></h2><span class="dir-supergroup-count">${gr.total}</span></div>
+      ${gr.leaves.map(leaf).join("")}
+    </section>`
+    ).join("");
+    if (pres.tail.length) {
+      body += `<section class="dir-supergroup">
+      <div class="dir-supergroup-head"><h2 class="dir-supergroup-title">Ещё в «${esc(dir.title)}»</h2></div>
+      ${pres.tail.map(leaf).join("")}
     </section>`;
-  }).join("");
+    }
+  } else {
+    body = dir.leaves.map(leaf).join("");
+  }
 
   const content = `<main class="page-shell">
   ${crumbs(trail)}
   <div class="main-head"><div class="main-head-l"><h1>${esc(dir.title)}</h1><div class="count"><b>${dir.total}</b> товаров</div></div></div>
   ${dir.seoIntro ? `<p class="dir-intro">${esc(dir.seoIntro)}</p>` : ""}
-  ${blocks || `<div class="state"><h3>Товаров пока нет</h3></div>`}
+  ${body || `<div class="state"><h3>Товаров пока нет</h3></div>`}
 </main>`;
   return layout({
     title: `${dir.seoTitle || dir.title} — ПрофиСфера`,
@@ -551,9 +574,33 @@ export function directionPage(section, dir, minSlice, thinMode) {
   });
 }
 
+/** Страница презентационной группы «направление × категории группы» (напр. «Реставрация»
+ *  в терапии). Показывает листовые категории группы, каждую — блоком с превью. */
+export function directionGroupPage(section, dir, grp, minSlice, thinMode) {
+  const trail = [
+    { name: "Каталог", href: `${SITE_BASE}/` },
+    { name: section.title, href: `${SITE_BASE}/${section.slug}/` },
+    { name: dir.title, href: `${SITE_BASE}/${section.slug}/${dir.slug}/` },
+    { name: grp.title },
+  ];
+  const body = grp.leaves.map((g) => leafBlock(section, dir, g, minSlice, thinMode)).join("");
+  const content = `<main class="page-shell">
+  ${crumbs(trail)}
+  <div class="main-head"><div class="main-head-l"><h1>${esc(grp.title)}</h1><div class="count"><b>${grp.total}</b> товаров</div></div></div>
+  <p class="ctx-banner">Раздел «${esc(dir.title)}» — подборка «${esc(grp.title)}».</p>
+  ${body || `<div class="state"><h3>Товаров пока нет</h3></div>`}
+</main>`;
+  return layout({
+    title: `${grp.seoTitle || grp.title} — ${dir.title} — ПрофиСфера`,
+    description: `${grp.seoTitle || grp.title}. ${dir.title}, каталог ПрофиСфера.`,
+    canonical: `${SITE_BASE}${grp.url}`,
+    image: null, bodyClass: "page-direction page-group", content,
+  });
+}
+
 /** Сайдбар среза: соседние листовые категории этого направления (контекст-навигация). */
 function directionCatNav(section, dir, currentCatSlug, minSlice, thinMode) {
-  const items = dir.groups.map((g) => {
+  const items = dir.leaves.map((g) => {
     const t = groupTarget(section, dir, g, minSlice, thinMode);
     if (!t.show) return "";
     const cur = g.catSlug === currentCatSlug ? ' class="current" aria-current="page"' : "";
@@ -730,7 +777,7 @@ async function main() {
   const sliceThick = new Set();
   for (const sec of model.sections)
     for (const d of sec.directions)
-      for (const g of d.groups)
+      for (const g of d.leaves)
         if (g.products.length >= minSlice) sliceThick.add(`${sec.slug}|${d.slug}|${g.catSlug}`);
 
   const slugOf = (x) => (x && (x.slug || x)) || null;
@@ -872,7 +919,7 @@ async function main() {
 
   // ---------- внешний каталог: разделы «для кого» → направления → срезы ----------
   // (catalogConfig / model / minSlice / thinMode собраны выше — до крошек товара)
-  let nsec = 0, ndir = 0, nslice = 0;
+  let nsec = 0, ndir = 0, ngroup = 0, nslice = 0;
   for (const section of model.sections) {
     const sdir = path.join(OUT, section.slug);
     await mkdir(sdir, { recursive: true });
@@ -887,7 +934,17 @@ async function main() {
       urls.push(`${SITE_BASE}/${section.slug}/${dir.slug}/`);
       ndir++;
 
-      for (const g of dir.groups) {
+      // страницы презентационных групп (напр. «Реставрация») — направление ∩ категории группы
+      for (const grp of (dir.presentation && dir.presentation.groups) || []) {
+        const grpDir = path.join(OUT, section.slug, dir.slug, grp.slug);
+        await mkdir(grpDir, { recursive: true });
+        await writeFile(path.join(grpDir, "index.html"),
+          directionGroupPage(section, dir, grp, minSlice, thinMode), "utf8");
+        if (grp.total >= minSlice) urls.push(`${SITE_BASE}${grp.url}`);
+        ngroup++;
+      }
+
+      for (const g of dir.leaves) {
         if (g.products.length < minSlice) continue; // тонкий срез не генерим — ведёт на канон /c/
         // фильтры среза (та же машинерия, что у страницы категории), но только по товарам среза
         const filters = await getFilters(g.catSlug);
@@ -921,7 +978,7 @@ async function main() {
   await writeFile(path.join(OUT, "sitemap.xml"), sitemap(urls), "utf8");
   await writeFile(path.join(OUT, "robots.txt"), robots(), "utf8");
 
-  console.log(`Готово: товаров ${n}, брендов ${nb} (стр. бренд×категория ${nbc}), категорий ${nc}, внешний каталог: разделов ${nsec}, направлений ${ndir}, срезов ${nslice}, всего URL в sitemap ${urls.length}`);
+  console.log(`Готово: товаров ${n}, брендов ${nb} (стр. бренд×категория ${nbc}), категорий ${nc}, внешний каталог: разделов ${nsec}, направлений ${ndir}, групп ${ngroup}, срезов ${nslice}, всего URL в sitemap ${urls.length}`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

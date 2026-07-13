@@ -34,6 +34,37 @@ export function groupByCategory(products, catName) {
  *    directions:[ {slug,title,seoTitle,order,url,total,groups,products} ],
  *    audienceGroups } ] }.
  *  audienceGroups заполняется только у разделов без направлений (общая медицина / пациент). */
+/** Презентационная раскладка листьев направления по группам из конфига (вариант B).
+ *  Группа — набор листовых категорий (categories) с заголовком; задаётся на паре
+ *  направление×категория. Листья вне групп попадают в tail. Пустые группы (нет
+ *  товаров под их категориями в этом направлении) отбрасываются. Возвращает
+ *  { groups: [ {slug,title,seoTitle,order,url,leaves,total} ], tail: [leaves] }. */
+export function buildPresentation(dirConfig, leaves, sectionSlug, dirSlug) {
+  const cfg = dirConfig.groups || [];
+  if (!cfg.length) return { groups: [], tail: leaves };
+  const leafBySlug = new Map(leaves.map((l) => [l.catSlug, l]));
+  const claimed = new Set();
+  const groups = cfg
+    .slice()
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((g) => {
+      const gLeaves = (g.categories || []).map((cs) => leafBySlug.get(cs)).filter(Boolean);
+      gLeaves.forEach((l) => claimed.add(l.catSlug));
+      return {
+        slug: g.slug,
+        title: g.title,
+        seoTitle: g.seo_title || g.title,
+        order: g.order ?? 0,
+        url: `/${sectionSlug}/${dirSlug}/${g.slug}/`,
+        leaves: gLeaves,
+        total: gLeaves.reduce((s, l) => s + l.products.length, 0),
+      };
+    })
+    .filter((g) => g.leaves.length); // группы без товаров не показываем
+  const tail = leaves.filter((l) => !claimed.has(l.catSlug));
+  return { groups, tail };
+}
+
 export function buildCatalogModel(config, products, catName) {
   const s = config.settings || {};
   const minSection = s.min_products_section ?? 3;
@@ -48,6 +79,7 @@ export function buildCatalogModel(config, products, catName) {
     for (const d of sec.directions || []) {
       const prods = products.filter((p) => matchesDirection(p, d.facet));
       if (prods.length < minSlice) continue; // тонкое направление не выводим
+      const leaves = groupByCategory(prods, catName);
       directions.push({
         slug: d.slug,
         title: d.title,
@@ -56,7 +88,8 @@ export function buildCatalogModel(config, products, catName) {
         order: d.order ?? 0,
         url: `/${sec.slug}/${d.slug}/`,
         total: prods.length,
-        groups: groupByCategory(prods, catName),
+        leaves,                                           // плоские листовые категории направления
+        presentation: buildPresentation(d, leaves, sec.slug, d.slug), // { groups: [...], tail: [...] }
         products: prods,
       });
     }
@@ -136,7 +169,7 @@ export function catalogMenuData(model, settings) {
     slug: sec.slug, title: sec.title, url: sec.url, total: sec.total,
     directions: sec.directions.map((d) => ({
       slug: d.slug, title: d.title, url: d.url, total: d.total,
-      groups: d.groups
+      groups: d.leaves
         .map((g) => ({ slug: g.catSlug, name: g.catName, total: g.products.length, url: groupUrl(sec.slug, d.slug, g) }))
         .filter((g) => g.url), // hide-режим убирает тонкие
     })),

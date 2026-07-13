@@ -521,3 +521,12 @@ a.card{text-decoration:none;color:inherit}
 .dir-card-count{font-size:13px;color:var(--muted)}
 
 .dir-intro{max-width:760px;margin:0 0 24px;font-size:15px;line-height:1.6;color:var(--muted)}
+
+/* презентационные группы внутри направления (напр. «Прямая реставрация») */
+.dir-supergroup{margin:0 0 36px}
+.dir-supergroup-head{display:flex;align-items:baseline;gap:10px;margin:0 0 16px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+.dir-supergroup-title{font-size:22px;font-weight:800;margin:0}
+.dir-supergroup-title a{color:var(--ink);text-decoration:none}
+.dir-supergroup-title a:hover{color:var(--primary)}
+.dir-supergroup-count{font-size:14px;color:var(--muted)}
+.dir-supergroup .dir-group-title{font-size:16px}
