@@ -51,7 +51,7 @@ async function fetchList(apiPath) {
 
 /* утилиты вёрстки и рендер тела товара — общий модуль (его же грузит браузер) */
 import { esc, stripHtml, mainImage, productMain, productJsonLd, crumbs, fmtPrice } from "./render-product.js";
-import { buildCatalogModel, catalogMenuData, buildDirectionLookup, resolveHomeDirection, sectionByAudience } from "./catalog-model.mjs";
+import { buildCatalogModel, buildMenuData, buildDirectionLookup, resolveHomeDirection, sectionByAudience } from "./catalog-model.mjs";
 
 /* ---------- общий каркас страницы ---------- */
 // --- иконки разделов навигации (по названию верхней категории) ---
@@ -971,7 +971,7 @@ async function main() {
     }
   }
   // данные для клиентского мега-меню (инкремент C)
-  await writeFile(path.join(OUT, "catalog.json"), JSON.stringify(catalogMenuData(model, catalogConfig.settings)), "utf8");
+  await writeFile(path.join(OUT, "menu.json"), JSON.stringify(buildMenuData(model, catalogConfig.settings)), "utf8");
 
   // каталог (index) + sitemap + robots
   await writeFile(path.join(OUT, "index.html"), await bakeIndex(list), "utf8");

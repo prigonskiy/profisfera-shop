@@ -153,29 +153,47 @@ export function sectionByAudience(config, audienceSlug) {
   return (config.top_sections || []).find((sec) => sec.audience === audienceSlug) || null;
 }
 
-/** Лёгкая структура для клиентского мега-меню (пишется в catalog.json).
- *  Без списков товаров — заголовки, URL (root-relative) и счётчики. У каждой листовой
- *  группы готовый target-url: толстая (>= min_products_slice) → свой срез, тонкая →
- *  каноническая /c/ (или скрыта при thin_slice_mode='hide'). */
-export function catalogMenuData(model, settings) {
+/** Структура для клиентского мега-меню (пишется в menu.json). Три ступени:
+ *  аудитории → направления → узлы третьего уровня. Узел бывает типов:
+ *   - "group"    — презентационная группа (заголовок-ссылка + children = листовые категории);
+ *   - "category" — негруппированная листовая категория (хвост).
+ *  (тип "systems" — блок систем совместимости — добавится, когда подключим fitment.)
+ *  Возвращает { settings, sections }. Отсечка тонких уже применена — меню рендерит как есть. */
+export function buildMenuData(model, settings) {
   const minSlice = (settings && settings.min_products_slice) ?? 3;
   const thinMode = (settings && settings.thin_slice_mode) || "link_to_canonical";
-  const groupUrl = (sectionSlug, dirSlug, g) => {
-    if (g.products.length >= minSlice) return `/${sectionSlug}/${dirSlug}/${g.catSlug}/`;
+  const leafUrl = (secSlug, dirSlug, leaf) => {
+    if (leaf.products.length >= minSlice) return `/${secSlug}/${dirSlug}/${leaf.catSlug}/`;
     if (thinMode === "hide") return null;
-    return `/c/${g.catSlug}/`;
+    return `/c/${leaf.catSlug}/`;
   };
-  return model.sections.map((sec) => ({
+  const menuSettings = {
+    render_mode: (settings && settings.menu && settings.menu.render_mode) || "cascade",
+    hover_intent_ms: (settings && settings.menu && settings.menu.hover_intent_ms) ?? 180,
+    mobile: (settings && settings.menu && settings.menu.mobile) || "drill-down",
+  };
+  const sections = model.sections.map((sec) => ({
     slug: sec.slug, title: sec.title, url: sec.url, total: sec.total,
-    directions: sec.directions.map((d) => ({
-      slug: d.slug, title: d.title, url: d.url, total: d.total,
-      groups: d.leaves
-        .map((g) => ({ slug: g.catSlug, name: g.catName, total: g.products.length, url: groupUrl(sec.slug, d.slug, g) }))
-        .filter((g) => g.url), // hide-режим убирает тонкие
-    })),
-    // для разделов без направлений — сразу листовые группы (канон /c/)
+    directions: sec.directions.map((d) => {
+      const pres = d.presentation || { groups: [], tail: d.leaves };
+      const nodes = [];
+      for (const g of pres.groups) {
+        nodes.push({
+          type: "group", slug: g.slug, title: g.title, url: g.url, total: g.total,
+          children: g.leaves
+            .map((l) => ({ name: l.catName, url: leafUrl(sec.slug, d.slug, l), total: l.products.length }))
+            .filter((c) => c.url),
+        });
+      }
+      for (const l of pres.tail) {
+        const url = leafUrl(sec.slug, d.slug, l);
+        if (url) nodes.push({ type: "category", slug: l.catSlug, title: l.catName, url, total: l.products.length });
+      }
+      return { slug: d.slug, title: d.title, url: d.url, total: d.total, nodes };
+    }),
     groups: sec.audienceGroups
       ? sec.audienceGroups.map((g) => ({ slug: g.catSlug, name: g.catName, total: g.products.length, url: `/c/${g.catSlug}/` }))
       : [],
   }));
+  return { settings: menuSettings, sections };
 }

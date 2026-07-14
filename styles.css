@@ -451,29 +451,47 @@ a.card{text-decoration:none;color:inherit}
 .catalog-mega-panel{position:absolute;left:0;right:0;top:0;background:var(--surface);
   border-top:1px solid var(--line);box-shadow:0 18px 34px rgba(18,24,38,.16);
   max-height:100%;overflow:auto}
-.cm-grid{display:grid;grid-template-columns:248px minmax(0,1fr);gap:30px;padding:22px 20px 28px}
-.cm-roots{display:flex;flex-direction:column;gap:2px;border-right:1px solid var(--line);padding-right:14px}
-.cm-root{display:block;padding:10px 12px;border-radius:10px;color:var(--ink);text-decoration:none;font-size:14px;font-weight:500}
-.cm-root:hover,.cm-root.active{background:var(--primary-weak);color:var(--primary-deep)}
-.cm-cols{columns:3;column-gap:30px}
-.cm-group{break-inside:avoid;margin:0 0 20px}
-.cm-h{display:block;font-weight:700;color:var(--ink);text-decoration:none;margin-bottom:8px;font-size:14px}
-.cm-h:hover{color:var(--primary)}
-.cm-cols ul{list-style:none;margin:0;padding:0}
-.cm-cols li{margin:7px 0}
-.cm-cols li a{color:var(--muted);text-decoration:none;font-size:13px}
-.cm-cols li a:hover{color:var(--primary)}
-.cm-empty{color:var(--muted)}
-.cm-close{display:none;position:absolute;top:12px;right:14px;z-index:2;width:38px;height:38px;border:0;border-radius:10px;background:var(--bg);color:var(--ink);font-size:16px;cursor:pointer;place-items:center}
+.cm-cascade{display:grid;grid-template-columns:240px 264px minmax(0,1fr);gap:0}
+.cm-col{padding:18px 16px}
+.cm-col-aud,.cm-col-dir{border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.cm-col-panel{padding:18px 24px;columns:2;column-gap:30px}
+.cm-aud,.cm-dir{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:10px;color:var(--ink);text-decoration:none;font-size:14px;font-weight:500}
+.cm-aud:hover,.cm-aud.active,.cm-dir:hover,.cm-dir.active{background:var(--primary-weak);color:var(--primary-deep)}
+.cm-caret{width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);opacity:.45;flex:none}
+.cm-block{break-inside:avoid;margin:0 0 20px}
+.cm-block-h{display:block;font-weight:700;color:var(--ink);text-decoration:none;margin-bottom:8px;font-size:14px}
+.cm-block-h:hover{color:var(--primary)}
+.cm-block-h--muted{color:var(--muted);font-weight:600}
+.cm-block ul{list-style:none;margin:0;padding:0}
+.cm-block li{margin:7px 0}
+.cm-block li a{color:var(--muted);text-decoration:none;font-size:13px}
+.cm-block li a:hover{color:var(--primary)}
+.cm-empty{color:var(--muted);padding:8px 4px}
+.cm-backbar{display:none}
+/* режим «стена» — без колонки направлений */
+.cm-mode-wall .cm-cascade{grid-template-columns:240px minmax(0,1fr)}
+.cm-mode-wall .cm-col-dir{display:none}
+.cm-close{display:none;position:absolute;top:12px;right:14px;z-index:3;width:38px;height:38px;border:0;border-radius:10px;background:var(--bg);color:var(--ink);font-size:16px;cursor:pointer;place-items:center}
 .cm-close:hover{background:var(--line)}
 @media (max-width:760px){
   .catalog-mega{top:0}
   .catalog-mega-panel{bottom:0;overflow-y:auto;border-radius:0}
   .cm-close{display:grid}
-  .cm-grid{grid-template-columns:1fr;gap:16px;padding-top:56px}
-  .cm-roots{border-right:0;border-bottom:1px solid var(--line);padding-right:0;padding-bottom:10px;
-    flex-direction:row;flex-wrap:wrap;gap:6px}
-  .cm-cols{columns:1}
+  .cm-cascade{grid-template-columns:1fr;padding-top:48px}
+  .cm-mode-wall .cm-cascade{grid-template-columns:1fr}
+  .cm-col{border-right:0!important}
+  .cm-col-panel{columns:1}
+  /* drill-down: видна только колонка активного уровня */
+  .catalog-mega[data-level="0"] .cm-col-dir,
+  .catalog-mega[data-level="0"] .cm-col-panel,
+  .catalog-mega[data-level="1"] .cm-col-aud,
+  .catalog-mega[data-level="1"] .cm-col-panel,
+  .catalog-mega[data-level="2"] .cm-col-aud,
+  .catalog-mega[data-level="2"] .cm-col-dir{display:none}
+  .cm-backbar{display:flex;align-items:center;gap:10px;position:absolute;top:0;left:0;right:0;height:48px;padding:0 14px;border-bottom:1px solid var(--line);background:var(--surface);z-index:2}
+  .cm-backbar[hidden]{display:none}
+  .cm-back{border:0;background:none;color:var(--primary);font-size:15px;font-weight:600;cursor:pointer;padding:0}
+  .cm-back-label{font-weight:600;color:var(--ink);font-size:15px}
 }
 
 /* ===== главная без сайдбара: полноширинная витрина ===== */
