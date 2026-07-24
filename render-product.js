@@ -267,25 +267,40 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
         ? `<span class="p-opt active">${dot}${t}</span>`
         : `<a class="p-opt" href="${SITE_BASE}/product/${esc(v.slug)}/">${dot}${t}</a>`;
     };
-    const rowFor = (title, members) => {
+    const optsOf = (members) => {
       const showDot = members.some(hexOf);
-      return `<div class="p-variant"><div class="p-vlabel">${esc(title)}</div><div class="p-opts">` +
-        members.map((v) => chip(v, showDot)).join("") + `</div></div>`;
+      return `<div class="p-opts">` + members.map((v) => chip(v, showDot)).join("") + `</div>`;
     };
-    let vrows = "";
+
+    // собираем непустые уровни в порядке из levels; остаток («без уровня») — в хвост
+    const groups = [];
+    const placed = new Set();
     levels.forEach((lvl) => {
       const lvlName = lvl && lvl.name;
       if (!lvlName) return;
       const members = p.group.variants.filter((v) => levelOf(v) === lvlName);
       if (!members.length) return;
-      vrows += rowFor(lvlName, members);
+      members.forEach((v) => placed.add(v.slug));
+      groups.push({ name: lvlName, members });
     });
-    // фолбэк: уровней нет или варианты к ним не привязаны — плоский список
-    if (!vrows) vrows = rowFor("Другие варианты", p.group.variants);
-    // сноска — только если в группе вообще есть цветные образцы
-    if (p.group.variants.some(hexOf))
-      vrows += `<p class="p-color-note">Цвет образца приведён ориентировочно и может отличаться от результата после обжига.</p>`;
-    info += vrows;
+    const rest = p.group.variants.filter((v) => !placed.has(v.slug));
+    if (rest.length) groups.push({ name: groups.length ? "Прочие" : "Другие варианты", members: rest });
+
+    const head = `<div class="p-vhead">Другие варианты${p.group.name ? ` (${esc(p.group.name)})` : ""}:</div>`;
+    if (groups.length > 1) {
+      // Уровни как табы (CSS-only, radio+label): открыт тот, где лежит текущий вариант.
+      // Так высокая палитра не разворачивается в стопку — виден только активный уровень.
+      const activeIdx = Math.max(0, groups.findIndex((g) => g.members.some((v) => v.is_current)));
+      const inputs = groups.map((g, i) =>
+        `<input type="radio" name="pvtab" id="pvtab-${i}" class="p-tabin"${i === activeIdx ? " checked" : ""}>`).join("");
+      const tabs = groups.map((g, i) =>
+        `<label class="p-tab" for="pvtab-${i}">${esc(g.name)}</label>`).join("");
+      const panes = groups.map((g) => `<div class="p-pane">${optsOf(g.members)}</div>`).join("");
+      info += `<div class="p-variants">${head}<div class="p-tabs">${inputs}` +
+        `<div class="p-tabrow">${tabs}</div><div class="p-panes">${panes}</div></div></div>`;
+    } else if (groups.length === 1) {
+      info += `<div class="p-variants">${head}${optsOf(groups[0].members)}</div>`;
+    }
   }
 
   // характеристики + идентификаторы

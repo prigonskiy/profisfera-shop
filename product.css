@@ -32,17 +32,39 @@
 .p-brand{display:inline-block;color:var(--muted);text-decoration:none;font-size:14px;margin-bottom:12px}
 .p-brand:hover{color:var(--primary)}
 .p-info .plede{font-size:15px;color:var(--muted);margin:0 0 18px}
-.p-variant{margin-bottom:16px}
-.p-vlabel{font-weight:700;font-size:15px;margin-bottom:8px;color:var(--ink)}
-.p-opts{display:flex;flex-wrap:wrap;gap:8px}
-.p-opt{display:inline-flex;align-items:center;justify-content:center;min-width:42px;padding:9px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);text-decoration:none;font-size:14px}
+.p-variants{margin:0 0 18px;padding:14px 16px;background:var(--bg);border-radius:14px}
+.p-vhead{font-weight:700;font-size:14px;margin-bottom:10px;color:var(--ink)}
+.p-opts{display:flex;flex-wrap:wrap;gap:7px}
+.p-opt{display:inline-flex;align-items:center;justify-content:center;min-width:38px;padding:7px 11px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);text-decoration:none;font-size:13px;line-height:1.2}
 .p-opt:hover{border-color:var(--primary)}
+.p-opt.active{border-color:var(--primary);color:var(--primary);font-weight:600;box-shadow:inset 0 0 0 1px var(--primary)}
 /* образец цвета: внутренняя обводка — чтобы светлые оттенки не пропадали на белом,
    и при этом кружок не «съёживался» на тёмных */
-.p-dot{width:14px;height:14px;border-radius:50%;flex:none;margin-right:8px;box-shadow:inset 0 0 0 1px rgba(15,27,45,.28)}
+.p-dot{width:12px;height:12px;border-radius:50%;flex:none;margin-right:7px;box-shadow:inset 0 0 0 1px rgba(15,27,45,.28)}
 .p-dot--none{background:transparent;box-shadow:none}
-.p-color-note{font-size:12px;line-height:1.45;color:var(--muted);margin:-6px 0 16px;max-width:520px}
-.p-opt.active{border-color:var(--primary);color:var(--primary);font-weight:600;box-shadow:inset 0 0 0 1px var(--primary)}
+/* уровни как табы: CSS-only (radio+label), без JS — переживает гидрат */
+.p-tabin{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.p-tabrow{display:flex;flex-wrap:wrap;gap:4px 18px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.p-tab{padding:6px 2px 9px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.p-tab:hover{color:var(--ink)}
+.p-tabin:focus-visible ~ .p-tabrow > .p-tab{outline:none}
+.p-pane{display:none}
+.p-tabin:nth-of-type(1):checked ~ .p-panes > .p-pane:nth-of-type(1),
+.p-tabin:nth-of-type(2):checked ~ .p-panes > .p-pane:nth-of-type(2),
+.p-tabin:nth-of-type(3):checked ~ .p-panes > .p-pane:nth-of-type(3),
+.p-tabin:nth-of-type(4):checked ~ .p-panes > .p-pane:nth-of-type(4),
+.p-tabin:nth-of-type(5):checked ~ .p-panes > .p-pane:nth-of-type(5),
+.p-tabin:nth-of-type(6):checked ~ .p-panes > .p-pane:nth-of-type(6),
+.p-tabin:nth-of-type(7):checked ~ .p-panes > .p-pane:nth-of-type(7),
+.p-tabin:nth-of-type(8):checked ~ .p-panes > .p-pane:nth-of-type(8){display:block}
+.p-tabin:nth-of-type(1):checked ~ .p-tabrow > .p-tab:nth-of-type(1),
+.p-tabin:nth-of-type(2):checked ~ .p-tabrow > .p-tab:nth-of-type(2),
+.p-tabin:nth-of-type(3):checked ~ .p-tabrow > .p-tab:nth-of-type(3),
+.p-tabin:nth-of-type(4):checked ~ .p-tabrow > .p-tab:nth-of-type(4),
+.p-tabin:nth-of-type(5):checked ~ .p-tabrow > .p-tab:nth-of-type(5),
+.p-tabin:nth-of-type(6):checked ~ .p-tabrow > .p-tab:nth-of-type(6),
+.p-tabin:nth-of-type(7):checked ~ .p-tabrow > .p-tab:nth-of-type(7),
+.p-tabin:nth-of-type(8):checked ~ .p-tabrow > .p-tab:nth-of-type(8){color:var(--primary);border-bottom-color:var(--primary)}
 .p-chars{margin-top:20px}
 .ctable{width:100%;border-collapse:collapse;font-size:14px}
 .ctable td{padding:10px 0;border-top:1px solid var(--line);vertical-align:top}
