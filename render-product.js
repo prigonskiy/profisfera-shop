@@ -252,11 +252,25 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
       if (v.levels) { const k = Object.keys(v.levels); return k.length ? k[0] : null; }
       return null;
     };
-    const chip = (v) => {
+    // Цвет образца из PIM: строго #RRGGBB либо null. Значение уходит в style,
+    // поэтому валидируем жёстко — нештатная строка просто игнорируется (чип станет текстовым).
+    const hexOf = (v) => (typeof v.color === "string" && /^#[0-9A-Fa-f]{6}$/.test(v.color) ? v.color : null);
+    // showDot: резервируем место под точку только в разделах, где цвет есть хотя бы у одного
+    // варианта — тогда чисто текстовые разделы («Наборы», фасовки) выглядят как раньше.
+    const chip = (v, showDot) => {
       const t = esc(v.label || v.name || "\u2014");
+      const hex = hexOf(v);
+      const dot = hex
+        ? `<span class="p-dot" style="background:${hex}" aria-hidden="true"></span>`
+        : (showDot ? `<span class="p-dot p-dot--none" aria-hidden="true"></span>` : "");
       return v.is_current
-        ? `<span class="p-opt active">${t}</span>`
-        : `<a class="p-opt" href="${SITE_BASE}/product/${esc(v.slug)}/">${t}</a>`;
+        ? `<span class="p-opt active">${dot}${t}</span>`
+        : `<a class="p-opt" href="${SITE_BASE}/product/${esc(v.slug)}/">${dot}${t}</a>`;
+    };
+    const rowFor = (title, members) => {
+      const showDot = members.some(hexOf);
+      return `<div class="p-variant"><div class="p-vlabel">${esc(title)}</div><div class="p-opts">` +
+        members.map((v) => chip(v, showDot)).join("") + `</div></div>`;
     };
     let vrows = "";
     levels.forEach((lvl) => {
@@ -264,14 +278,13 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
       if (!lvlName) return;
       const members = p.group.variants.filter((v) => levelOf(v) === lvlName);
       if (!members.length) return;
-      vrows += `<div class="p-variant"><div class="p-vlabel">${esc(lvlName)}</div><div class="p-opts">` +
-        members.map(chip).join("") + `</div></div>`;
+      vrows += rowFor(lvlName, members);
     });
     // фолбэк: уровней нет или варианты к ним не привязаны — плоский список
-    if (!vrows) {
-      vrows = `<div class="p-variant"><div class="p-vlabel">Другие варианты</div><div class="p-opts">` +
-        p.group.variants.map(chip).join("") + `</div></div>`;
-    }
+    if (!vrows) vrows = rowFor("Другие варианты", p.group.variants);
+    // сноска — только если в группе вообще есть цветные образцы
+    if (p.group.variants.some(hexOf))
+      vrows += `<p class="p-color-note">Цвет образца приведён ориентировочно и может отличаться от результата после обжига.</p>`;
     info += vrows;
   }
 
