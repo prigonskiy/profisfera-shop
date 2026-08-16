@@ -471,6 +471,13 @@ a.card{text-decoration:none;color:inherit}
 /* режим «стена» — без колонки направлений */
 .cm-mode-wall .cm-cascade{grid-template-columns:240px minmax(0,1fr)}
 .cm-mode-wall .cm-col-dir{display:none}
+/* canonical (дерево) — две колонки: корни + панель семейств */
+.cm-view-canonical .cm-cascade{grid-template-columns:240px minmax(0,1fr)}
+.cm-view-canonical .cm-col-dir{display:none}
+/* подвал с переключателем вида */
+.cm-footer{border-top:1px solid var(--line);padding:10px 16px;text-align:right}
+.cm-viewbtn{background:none;border:0;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:4px 6px;border-radius:8px}
+.cm-viewbtn:hover{color:var(--primary);background:var(--primary-weak)}
 .cm-close{display:none;position:absolute;top:12px;right:14px;z-index:3;width:38px;height:38px;border:0;border-radius:10px;background:var(--bg);color:var(--ink);font-size:16px;cursor:pointer;place-items:center}
 .cm-close:hover{background:var(--line)}
 @media (max-width:760px){
@@ -488,6 +495,10 @@ a.card{text-decoration:none;color:inherit}
   .catalog-mega[data-level="1"] .cm-col-panel,
   .catalog-mega[data-level="2"] .cm-col-aud,
   .catalog-mega[data-level="2"] .cm-col-dir{display:none}
+  /* canonical (2 колонки): на уровне 1 показываем панель семейств, не скрытую колонку направлений */
+  .catalog-mega.cm-view-canonical[data-level="1"] .cm-col-aud{display:none}
+  .catalog-mega.cm-view-canonical[data-level="1"] .cm-col-panel{display:block}
+  .cm-footer{text-align:center}
   .cm-backbar{display:flex;align-items:center;gap:10px;position:absolute;top:0;left:0;right:0;height:48px;padding:0 14px;border-bottom:1px solid var(--line);background:var(--surface);z-index:2}
   .cm-backbar[hidden]{display:none}
   .cm-back{border:0;background:none;color:var(--primary);font-size:15px;font-weight:600;cursor:pointer;padding:0}
