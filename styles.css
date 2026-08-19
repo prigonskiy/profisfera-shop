@@ -559,3 +559,25 @@ a.card{text-decoration:none;color:inherit}
 .dir-supergroup-title a:hover{color:var(--primary)}
 .dir-supergroup-count{font-size:14px;color:var(--muted)}
 .dir-supergroup .dir-group-title{font-size:16px}
+
+/* ---------- раздел «Кейсы» ---------- */
+.cases-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.case-card{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;transition:border-color .15s,box-shadow .15s}
+.case-card:hover{border-color:var(--primary);box-shadow:0 6px 20px rgba(20,98,255,.08)}
+.case-cover{position:relative;aspect-ratio:16/10;background:var(--bg);display:grid;place-items:center;overflow:hidden}
+.case-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.case-cover .noimg{color:var(--muted);font-size:13px}
+.case-badge{position:absolute;top:10px;left:10px;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;background:rgba(15,27,45,.72);color:#fff}
+.case-badge--clinical{background:rgba(20,98,255,.92)}
+.case-badge--lab{background:rgba(16,143,90,.92)}
+.case-badge--joint{background:rgba(122,90,200,.92)}
+.case-body{padding:14px 15px 16px;display:flex;flex-direction:column;gap:6px}
+.case-num{font-size:12px;color:var(--muted);font-weight:600}
+.case-title{font-size:15px;font-weight:700;line-height:1.35;margin:0;color:var(--ink)}
+.case-dirs{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.case-dir{font-size:11.5px;color:var(--primary-deep);background:var(--primary-weak);border-radius:6px;padding:3px 8px}
+.case-subcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:24px}
+.case-subcard{display:flex;flex-direction:column;gap:4px;padding:16px 18px;background:var(--primary-weak);border:1px solid transparent;border-radius:12px;text-decoration:none}
+.case-subcard:hover{border-color:var(--primary)}
+.case-subcard-t{font-size:15px;font-weight:700;color:var(--ink)}
+.case-subcard-c{font-size:13px;color:var(--muted)}

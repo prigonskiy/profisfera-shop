@@ -71,7 +71,7 @@ function buildMainNav() {
   // Разделы рядом с «Каталогом» (категории — внутри кнопки «Каталог»).
   // «Кейсы» и «Справочник» — задел на будущее, пока неактивны.
   return `<a class="nav-cat-link" href="${SITE_BASE}/brands/">Бренды</a>` +
-    `<span class="nav-cat-link nav-soon" title="Скоро">Кейсы</span>` +
+    `<a class="nav-cat-link" href="${SITE_BASE}/cases/">Кейсы</a>` +
     `<span class="nav-cat-link nav-soon" title="Скоро">Справочник</span>`;
 }
 
@@ -695,6 +695,69 @@ export function sectionPage(section, minSlice, thinMode) {
   });
 }
 
+/* ---------- раздел «Кейсы» ---------- */
+function plural(n, one, few, many) {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b > 1 && b < 5) return few;
+  if (b === 1) return one;
+  return many;
+}
+const CASE_PROFILE = { clinical: "Клинический", lab: "Зуботехнический", joint: "Клинический + лабораторный" };
+const CASE_PROFILE_SHORT = { clinical: "Клинический", lab: "Зуботехнический", joint: "Смешанный" };
+
+export function caseTile(c, dirName) {
+  const cover = c.cover && c.cover.thumb
+    ? `<img src="${esc(c.cover.thumb)}" alt="${esc((c.cover && c.cover.alt) || c.title || "")}" loading="lazy">`
+    : `<span class="noimg">без обложки</span>`;
+  const prof = CASE_PROFILE_SHORT[c.case_profile]
+    ? `<span class="case-badge case-badge--${esc(c.case_profile)}">${CASE_PROFILE_SHORT[c.case_profile]}</span>` : "";
+  const dirs = (c.directions || []).map((d) => `<span class="case-dir">${esc(dirName ? dirName(d) : d)}</span>`).join("");
+  const num = c.case_number ? `<div class="case-num">Кейс №${esc(c.case_number)}</div>` : "";
+  return `<a class="case-card" href="${SITE_BASE}/cases/${esc(c.slug)}/">
+    <div class="case-cover">${cover}${prof}</div>
+    <div class="case-body">${num}<h3 class="case-title">${esc(c.title || "")}</h3>${dirs ? `<div class="case-dirs">${dirs}</div>` : ""}</div>
+  </a>`;
+}
+
+function caseGrid(cases, dirName, emptyText) {
+  if (!cases.length) return `<div class="state"><h3>Кейсов пока нет</h3><p>${esc(emptyText || "")}</p></div>`;
+  return `<div class="cases-grid">${cases.map((c) => caseTile(c, dirName)).join("")}</div>`;
+}
+
+export function casesRootPage(rootCases, subsections, dirName) {
+  const trail = [{ name: "Главная", href: `${SITE_BASE}/` }, { name: "Кейсы" }];
+  const subCards = subsections
+    .filter((s) => s.count > 0)
+    .map((s) => `<a class="case-subcard" href="${SITE_BASE}/cases/${s.slug}/"><span class="case-subcard-t">${esc(s.title)}</span><span class="case-subcard-c">${s.count} ${plural(s.count, "кейс", "кейса", "кейсов")}</span></a>`)
+    .join("");
+  const content = `<main class="page-shell">
+  ${crumbs(trail)}
+  <div class="main-head"><div class="main-head-l"><h1>Клинические и зуботехнические кейсы</h1></div></div>
+  ${subCards ? `<div class="case-subcards">${subCards}</div>` : ""}
+  ${caseGrid(rootCases, dirName, "Скоро здесь появятся разборы клинических и лабораторных случаев.")}
+</main>`;
+  return layout({
+    title: "Кейсы — клинические и зуботехнические разборы — ПрофиСфера",
+    description: "Клинические и зуботехнические кейсы: разбор случаев, применённые материалы и инструменты.",
+    canonical: `${SITE_BASE}/cases/`, image: null, bodyClass: "page-cases", content,
+  });
+}
+
+export function casesSubPage(title, slug, cases, dirName) {
+  const trail = [{ name: "Главная", href: `${SITE_BASE}/` }, { name: "Кейсы", href: `${SITE_BASE}/cases/` }, { name: title }];
+  const content = `<main class="page-shell">
+  ${crumbs(trail)}
+  <div class="main-head"><div class="main-head-l"><h1>${esc(title)}</h1><div class="count"><b>${cases.length}</b> ${plural(cases.length, "кейс", "кейса", "кейсов")}</div></div></div>
+  ${caseGrid(cases, dirName)}
+</main>`;
+  return layout({
+    title: `${title} — ПрофиСфера`,
+    description: `${title}: разбор случаев с применёнными материалами и инструментами.`,
+    canonical: `${SITE_BASE}/cases/${slug}/`, image: null, bodyClass: "page-cases", content,
+  });
+}
+
 /* ---------- серверный рендер каталога (index.html) ---------- */
 async function bakeIndex(products) {
   let html = await readFile(path.join(ROOT, "index.html"), "utf8");
@@ -973,12 +1036,38 @@ async function main() {
   // данные для клиентского мега-меню (инкремент C)
   await writeFile(path.join(OUT, "menu.json"), JSON.stringify(buildMenuData(model, catalogConfig.settings)), "utf8");
 
+  // ---------- раздел «Кейсы» ----------
+  const dirName = (slug) => (dirLookup[slug] && dirLookup[slug].dirTitle) || slug;
+  const allCases = await fetchList("/api/cases/");                 // свежие вперёд
+  let featuredCases = [];
+  try { featuredCases = await fetchList("/api/cases/?featured=1"); } catch (e) { featuredCases = []; }
+  const stomCases = allCases.filter((c) => c.case_profile === "clinical" || c.case_profile === "joint");
+  const zubCases = allCases.filter((c) => c.case_profile === "lab" || c.case_profile === "joint");
+  const rootCases = featuredCases.length ? featuredCases : allCases; // корень: избранные, иначе свежие
+  const subsections = [
+    { title: "Стоматологические кейсы", slug: "stomatologicheskie", count: stomCases.length },
+    { title: "Зуботехнические кейсы", slug: "zubotehnicheskie", count: zubCases.length },
+  ];
+  await mkdir(path.join(OUT, "cases"), { recursive: true });
+  await writeFile(path.join(OUT, "cases", "index.html"), casesRootPage(rootCases, subsections, dirName), "utf8");
+  urls.push(`${SITE_BASE}/cases/`);
+  for (const [sslug, stitle, scases] of [
+    ["stomatologicheskie", "Стоматологические кейсы", stomCases],
+    ["zubotehnicheskie", "Зуботехнические кейсы", zubCases],
+  ]) {
+    if (!scases.length) continue;
+    await mkdir(path.join(OUT, "cases", sslug), { recursive: true });
+    await writeFile(path.join(OUT, "cases", sslug, "index.html"), casesSubPage(stitle, sslug, scases, dirName), "utf8");
+    urls.push(`${SITE_BASE}/cases/${sslug}/`);
+  }
+  const ncases = allCases.length;
+
   // каталог (index) + sitemap + robots
   await writeFile(path.join(OUT, "index.html"), await bakeIndex(list), "utf8");
   await writeFile(path.join(OUT, "sitemap.xml"), sitemap(urls), "utf8");
   await writeFile(path.join(OUT, "robots.txt"), robots(), "utf8");
 
-  console.log(`Готово: товаров ${n}, брендов ${nb} (стр. бренд×категория ${nbc}), категорий ${nc}, внешний каталог: разделов ${nsec}, направлений ${ndir}, групп ${ngroup}, срезов ${nslice}, всего URL в sitemap ${urls.length}`);
+  console.log(`Готово: товаров ${n}, брендов ${nb} (стр. бренд×категория ${nbc}), категорий ${nc}, внешний каталог: разделов ${nsec}, направлений ${ndir}, групп ${ngroup}, срезов ${nslice}, кейсов ${ncases}, всего URL в sitemap ${urls.length}`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
