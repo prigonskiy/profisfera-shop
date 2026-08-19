@@ -286,7 +286,7 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
     const rest = p.group.variants.filter((v) => !placed.has(v.slug));
     if (rest.length) groups.push({ name: groups.length ? "Прочие" : "Другие варианты", members: rest });
 
-    const head = `<div class="p-vhead">Другие варианты${p.group.name ? ` (${esc(p.group.name)})` : ""}:</div>`;
+    const head = `<div class="p-vhead">Варианты</div>`;
     if (groups.length > 1) {
       // Уровни как табы (CSS-only, radio+label): открыт тот, где лежит текущий вариант.
       // Так высокая палитра не разворачивается в стопку — виден только активный уровень.
@@ -367,5 +367,24 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
 
   return `${crumbs(trail)}
   <div class="product-top"><div class="product-main-card">${gallery}${info}</div><div class="product-side">${buybox}${educationBlock(p)}</div></div>
-  ${tabs}`;
+  ${tabs}${casesBlock(p, SITE_BASE)}`;
+}
+
+/** «Кейсы с этим товаром» — плитки из p.cases[] (до 6, дальше ссылка на общий раздел). */
+function casesBlock(p, SITE_BASE) {
+  const cases = p.cases || [];
+  if (!cases.length) return "";
+  const PROFILE = { clinical: "Клинический", lab: "Зуботехнический", joint: "Смешанный" };
+  const CAP = 6;
+  const tiles = cases.slice(0, CAP).map((c) => {
+    const cover = c.cover && c.cover.thumb
+      ? `<img src="${esc(c.cover.thumb)}" alt="${esc((c.cover && c.cover.alt) || c.title || "")}" loading="lazy">`
+      : `<span class="noimg">без обложки</span>`;
+    const badge = PROFILE[c.case_profile] ? `<span class="case-badge case-badge--${esc(c.case_profile)}">${PROFILE[c.case_profile]}</span>` : "";
+    const num = c.case_number ? `<div class="case-num">Кейс №${esc(c.case_number)}</div>` : "";
+    return `<a class="case-card" href="${SITE_BASE}/cases/${esc(c.slug)}/"><div class="case-cover">${cover}${badge}</div>` +
+      `<div class="case-body">${num}<h3 class="case-title">${esc(c.title || "")}</h3></div></a>`;
+  }).join("");
+  const more = cases.length > CAP ? `<a class="cases-more" href="${SITE_BASE}/cases/">Все кейсы \u2192</a>` : "";
+  return `<section class="product-cases"><div class="pc-head"><h2 class="case-h2">Кейсы с этим товаром</h2>${more}</div><div class="cases-grid">${tiles}</div></section>`;
 }
