@@ -758,6 +758,139 @@ export function casesSubPage(title, slug, cases, dirName) {
   });
 }
 
+/* ---------- страница кейса ---------- */
+const FDI_UPPER = ["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"];
+const FDI_LOWER = ["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"];
+const CASE_DENTITION = { permanent: "постоянные", primary: "молочные", mixed: "смешанный прикус" };
+const CASE_ARCH = { upper: "верхняя", lower: "нижняя" };
+const CASE_GROUP = { molars: "моляры", premolars: "премоляры", canines: "клыки", incisors: "резцы" };
+const CASE_SIDE = { right: "справа", left: "слева" };
+
+function ruDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return `${String(d.getUTCDate()).padStart(2, "0")}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${d.getUTCFullYear()}`;
+}
+const fdiDot = (t) => (String(t).length === 2 ? `${String(t)[0]}.${String(t)[1]}` : String(t));
+
+// множество подсвеченных зубов по scope (фасеты уже посчитаны PIM — не выводим заново)
+function caseHighlighted(c) {
+  const s = new Set();
+  if (c.tooth_scope === "full_mouth") { FDI_UPPER.concat(FDI_LOWER).forEach((t) => s.add(t)); return s; }
+  if (c.tooth_scope === "arch") {
+    (c.arches || []).forEach((a) => { if (a === "upper") FDI_UPPER.forEach((t) => s.add(t)); if (a === "lower") FDI_LOWER.forEach((t) => s.add(t)); });
+    return s;
+  }
+  (c.teeth || []).forEach((t) => s.add(String(t)));
+  return s;
+}
+
+function caseToothSummary(c) {
+  const parts = [];
+  (c.dentition || []).forEach((d) => parts.push(CASE_DENTITION[d] || d));
+  (c.arches || []).forEach((a) => parts.push(CASE_ARCH[a] || a));
+  (c.tooth_groups || []).forEach((g) => parts.push(CASE_GROUP[g] || g));
+  (c.tooth_sides || []).forEach((s) => parts.push(CASE_SIDE[s] || s));
+  return parts.join(" · ");
+}
+
+export function caseToothCard(c) {
+  const hi = caseHighlighted(c);
+  if (!hi.size && c.tooth_scope !== "arch" && c.tooth_scope !== "full_mouth") return "";
+  const W = 28, H = 32, GAP = 3, MID = 12, Y0 = 8, Y1 = 8 + H + 12;
+  const xOf = (i) => i * (W + GAP) + (i >= 8 ? MID : 0);
+  const cell = (fdi, x, y) => {
+    const on = hi.has(fdi);
+    return `<g><rect x="${x}" y="${y}" width="${W}" height="${H}" rx="6" fill="${on ? "#1462FF" : "#fff"}" stroke="${on ? "#1462FF" : "#E6EAF0"}"></rect>` +
+      `<text x="${x + W / 2}" y="${y + H / 2 + 4}" text-anchor="middle" font-size="10.5" font-weight="${on ? 700 : 500}" fill="${on ? "#fff" : "#8A94A6"}">${fdiDot(fdi)}</text></g>`;
+  };
+  const upper = FDI_UPPER.map((t, i) => cell(t, xOf(i), Y0)).join("");
+  const lower = FDI_LOWER.map((t, i) => cell(t, xOf(i), Y1)).join("");
+  const midX = xOf(8) - MID / 2 - GAP / 2;
+  const totalW = xOf(15) + W;
+  const totalH = Y1 + H + 6;
+  const summary = caseToothSummary(c);
+  const teethList = (c.teeth || []).map(fdiDot).join(", ");
+  const aria = `Зубная формула: ${summary}${teethList ? `, зубы ${teethList}` : ""}`;
+  return `<div class="tooth-card">
+    <div class="tooth-card-head"><span class="tooth-card-t">Зубная формула</span>${summary ? `<span class="tooth-summary">${esc(summary)}</span>` : ""}</div>
+    <svg class="tooth-svg" viewBox="0 0 ${totalW} ${totalH}" role="img" aria-label="${esc(aria)}" xmlns="http://www.w3.org/2000/svg">
+      <line x1="${midX}" y1="2" x2="${midX}" y2="${totalH - 2}" stroke="#D5DCE6" stroke-width="1" stroke-dasharray="3 3"></line>
+      ${upper}${lower}
+    </svg>
+  </div>`;
+}
+
+function caseGalleryStrip(media) {
+  const items = (media || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  if (!items.length) return "";
+  const cells = items.map((m) => {
+    const ar = (m.width && m.height) ? ` style="aspect-ratio:${m.width}/${m.height}"` : "";
+    return `<button type="button" class="case-gitem"${ar} data-lb="${esc(m.preview || m.thumb || "")}" data-cap="${esc(m.caption || "")}">` +
+      `<img src="${esc(m.thumb || "")}" alt="${esc(m.alt || "")}" loading="lazy"${m.width ? ` width="${m.width}"` : ""}${m.height ? ` height="${m.height}"` : ""}></button>`;
+  }).join("");
+  return `<div class="case-gallery"><div class="case-gallery-h">Галерея</div><div class="case-gstrip">${cells}</div></div>`;
+}
+
+export function caseProductTile(p) {
+  const img = p.image
+    ? `<div class="card-img"><img src="${esc(p.image)}" alt="${esc(p.name || "")}" loading="lazy"></div>`
+    : `<div class="card-img"><span class="noimg">без фото</span></div>`;
+  const brand = p.brand ? `<div class="card-brand">${esc(p.brand)}</div>` : "";
+  const price = p.price_from ? "от " + fmtPrice(p.price_from) : "Цена по запросу";
+  const note = p.note ? `<div class="case-prod-note">${esc(p.note)}</div>` : "";
+  return `<a class="card pcard case-prod" href="${SITE_BASE}/product/${esc(p.slug)}/">${img}<div class="card-body"><div class="card-price">${price}</div><div class="card-name">${esc(p.name || "")}</div>${brand}${note}</div></a>`;
+}
+
+function caseJsonLd(c) {
+  const obj = {
+    "@context": "https://schema.org", "@type": "Article",
+    headline: c.title || "",
+    datePublished: c.published_at || undefined,
+    image: c.cover && c.cover.og ? [c.cover.og] : undefined,
+    author: c.author_line ? { "@type": "Person", name: c.author_line } : undefined,
+    publisher: { "@type": "Organization", name: "ПрофиСфера" },
+    mainEntityOfPage: `${SITE_BASE}/cases/${c.slug}/`,
+  };
+  return `<script type="application/ld+json">${JSON.stringify(obj).replace(/</g, "\\u003c")}</script>`;
+}
+
+export function casePage(c, dirName) {
+  const trail = [{ name: "Главная", href: `${SITE_BASE}/` }, { name: "Кейсы", href: `${SITE_BASE}/cases/` }, { name: c.title || "Кейс" }];
+  const prof = CASE_PROFILE[c.case_profile] ? `<span class="case-badge case-badge--${esc(c.case_profile)} case-badge--inline">${CASE_PROFILE[c.case_profile]}</span>` : "";
+  const dirs = (c.directions || []).map((d) => `<span class="case-dir">${esc(dirName ? dirName(d) : d)}</span>`).join("");
+  const metaBits = [c.case_number ? `Кейс №${esc(c.case_number)}` : "", esc(c.author_line || ""), ruDate(c.published_at)].filter(Boolean).join(" · ");
+  const products = (c.products || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  const productsBlock = products.length
+    ? `<section class="case-products"><h2 class="case-h2">Товары из кейса</h2><div class="grid">${products.map(caseProductTile).join("")}</div></section>`
+    : "";
+  const body = c.body_html ? `<div class="rich case-article">${c.body_html}</div>` : "";
+
+  const content = `<main class="page-shell case-page">
+  ${crumbs(trail)}
+  <header class="case-head">
+    <div class="case-badges">${prof}${dirs}</div>
+    <h1 class="case-h1">${esc(c.title || "Кейс")}</h1>
+    ${metaBits ? `<div class="case-meta">${metaBits}</div>` : ""}
+  </header>
+  ${caseToothCard(c)}
+  ${caseGalleryStrip(c.media)}
+  ${body}
+  ${productsBlock}
+</main>
+<script src="${SITE_BASE}/case.js" defer></script>`;
+  return layout({
+    title: `${esc(c.meta_title || c.title || "Кейс")} — ПрофиСфера`,
+    description: c.meta_description || stripHtml(c.body_html || "").slice(0, 300),
+    canonical: `${SITE_BASE}/cases/${c.slug}/`,
+    image: c.cover && c.cover.og ? c.cover.og : null,
+    imageAlt: (c.cover && c.cover.alt) || c.title || "",
+    jsonLd: caseJsonLd(c),
+    bodyClass: "page-case", content,
+  });
+}
+
 /* ---------- серверный рендер каталога (index.html) ---------- */
 async function bakeIndex(products) {
   let html = await readFile(path.join(ROOT, "index.html"), "utf8");
@@ -807,7 +940,7 @@ function collectCategories(nodes) {
   return out;
 }
 async function copyStatic() {
-  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js", "catalog-menu.js", "search.js", "auth.js", "course.js", "ic-user.svg", "ic-cart.svg", "ic-cart-sm.svg", "ic-caret.svg", "ic-burger.svg", "ic-cat-tools.svg", "ic-cat-materials.svg", "ic-cat-equipment.svg", "ic-stock.svg", "ic-delivery.svg", "ic-bonus.svg", "banner-devices.png"]) {
+  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js", "catalog-menu.js", "case.js", "search.js", "auth.js", "course.js", "ic-user.svg", "ic-cart.svg", "ic-cart-sm.svg", "ic-caret.svg", "ic-burger.svg", "ic-cat-tools.svg", "ic-cat-materials.svg", "ic-cat-equipment.svg", "ic-stock.svg", "ic-delivery.svg", "ic-bonus.svg", "banner-devices.png"]) {
     const src = path.join(ROOT, f);
     if (existsSync(src)) await copyFile(src, path.join(OUT, f));
   }
@@ -1059,6 +1192,15 @@ async function main() {
     await mkdir(path.join(OUT, "cases", sslug), { recursive: true });
     await writeFile(path.join(OUT, "cases", sslug, "index.html"), casesSubPage(stitle, sslug, scases, dirName), "utf8");
     urls.push(`${SITE_BASE}/cases/${sslug}/`);
+  }
+  // детальные страницы кейсов
+  for (const tile of allCases) {
+    if (!tile.slug) continue;
+    const full = await getJSON(`/api/cases/${tile.slug}/`);
+    const cdir = path.join(OUT, "cases", tile.slug);
+    await mkdir(cdir, { recursive: true });
+    await writeFile(path.join(cdir, "index.html"), casePage(full, dirName), "utf8");
+    urls.push(`${SITE_BASE}/cases/${tile.slug}/`);
   }
   const ncases = allCases.length;
 

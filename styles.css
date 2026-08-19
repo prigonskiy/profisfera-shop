@@ -581,3 +581,50 @@ a.card{text-decoration:none;color:inherit}
 .case-subcard:hover{border-color:var(--primary)}
 .case-subcard-t{font-size:15px;font-weight:700;color:var(--ink)}
 .case-subcard-c{font-size:13px;color:var(--muted)}
+
+/* ---------- страница кейса ---------- */
+.case-page{max-width:920px}
+.case-head{margin:6px 0 20px}
+.case-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.case-badge--inline{position:static;display:inline-block}
+.case-h1{font-size:28px;line-height:1.25;font-weight:800;color:var(--ink);margin:0 0 8px}
+.case-meta{font-size:13.5px;color:var(--muted)}
+/* зубная формула */
+.tooth-card{border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 22px;background:#fff}
+.tooth-card-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:12px}
+.tooth-card-t{font-weight:700;font-size:15px;color:var(--ink)}
+.tooth-summary{font-size:13px;color:var(--primary-deep);background:var(--primary-weak);border-radius:6px;padding:3px 9px}
+.tooth-svg{display:block;width:100%;max-width:520px;height:auto}
+/* галерея */
+.case-gallery{margin:0 0 24px}
+.case-gallery-h{font-weight:700;font-size:15px;color:var(--ink);margin-bottom:10px}
+.case-gstrip{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
+.case-gitem{flex:0 0 auto;width:150px;aspect-ratio:4/3;border:1px solid var(--line);border-radius:10px;overflow:hidden;padding:0;background:var(--bg);cursor:zoom-in;scroll-snap-align:start}
+.case-gitem img{width:100%;height:100%;object-fit:cover;display:block}
+/* тело статьи */
+.case-article{font-size:16px;line-height:1.7;color:var(--ink)}
+.case-article figure{margin:20px 0;text-align:center}
+.case-article figure img{max-width:100%;height:auto;border-radius:12px;cursor:zoom-in}
+.case-article figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5}
+.case-article h2{font-size:22px;margin:28px 0 12px}
+.case-article h3{font-size:18px;margin:22px 0 10px}
+.case-article p{margin:0 0 14px}
+.case-article ul,.case-article ol{margin:0 0 14px;padding-left:22px}
+.case-article li{margin:5px 0}
+/* товары из кейса */
+.case-products{margin-top:32px}
+.case-h2{font-size:22px;font-weight:800;color:var(--ink);margin:0 0 16px}
+.case-prod-note{font-size:12.5px;color:var(--muted);background:var(--bg);border-radius:8px;padding:7px 10px;margin-top:8px;line-height:1.45}
+/* лайтбокс */
+body.lb-open{overflow:hidden}
+.lb-overlay{position:fixed;inset:0;z-index:1000;background:rgba(10,16,28,.92);display:flex;align-items:center;justify-content:center;padding:24px}
+.lb-overlay[hidden]{display:none}
+.lb-fig{margin:0;max-width:min(1100px,94vw);max-height:90vh;display:flex;flex-direction:column;align-items:center;gap:10px}
+.lb-img{max-width:100%;max-height:82vh;object-fit:contain;border-radius:8px}
+.lb-cap{color:#e6eaf0;font-size:14px;text-align:center;max-width:800px}
+.lb-close{position:absolute;top:14px;right:16px;width:42px;height:42px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:20px;cursor:pointer}
+.lb-close:hover{background:rgba(255,255,255,.22)}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:64px;border:0;border-radius:10px;background:rgba(255,255,255,.1);color:#fff;font-size:32px;cursor:pointer}
+.lb-nav:hover{background:rgba(255,255,255,.2)}
+.lb-prev{left:12px}.lb-next{right:12px}
+@media (max-width:760px){ .lb-nav{width:40px;height:52px;font-size:26px} .case-h1{font-size:23px} }
