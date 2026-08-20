@@ -775,6 +775,8 @@ export function casesSubPage(title, slug, cases, dirName) {
 /* ---------- страница кейса ---------- */
 const FDI_UPPER = ["18","17","16","15","14","13","12","11","21","22","23","24","25","26","27","28"];
 const FDI_LOWER = ["48","47","46","45","44","43","42","41","31","32","33","34","35","36","37","38"];
+const FDI_UPPER_P = ["55","54","53","52","51","61","62","63","64","65"];
+const FDI_LOWER_P = ["85","84","83","82","81","71","72","73","74","75"];
 const CASE_DENTITION = { permanent: "постоянные", primary: "молочные", mixed: "смешанный прикус" };
 const CASE_ARCH = { upper: "верхняя", lower: "нижняя" };
 const CASE_GROUP = { molars: "моляры", premolars: "премоляры", canines: "клыки", incisors: "резцы" };
@@ -788,16 +790,20 @@ function ruDate(iso) {
 }
 const fdiDot = (t) => (String(t).length === 2 ? `${String(t)[0]}.${String(t)[1]}` : String(t));
 
-// множество подсвеченных зубов по scope (фасеты уже посчитаны PIM — не выводим заново)
-function caseHighlighted(c) {
-  const s = new Set();
-  if (c.tooth_scope === "full_mouth") { FDI_UPPER.concat(FDI_LOWER).forEach((t) => s.add(t)); return s; }
-  if (c.tooth_scope === "arch") {
-    (c.arches || []).forEach((a) => { if (a === "upper") FDI_UPPER.forEach((t) => s.add(t)); if (a === "lower") FDI_LOWER.forEach((t) => s.add(t)); });
-    return s;
-  }
-  (c.teeth || []).forEach((t) => s.add(String(t)));
-  return s;
+// предикат «зуб подсвечен» по scope (фасеты посчитаны PIM)
+function caseToothIsOn(c) {
+  const scope = c.tooth_scope;
+  const teeth = new Set((c.teeth || []).map(String));
+  const arches = c.arches || [];
+  const upperSet = new Set(FDI_UPPER.concat(FDI_UPPER_P));
+  return function (fdi) {
+    if (scope === "full_mouth") return true;
+    if (scope === "arch") {
+      const up = upperSet.has(fdi);
+      return (up && arches.indexOf("upper") >= 0) || (!up && arches.indexOf("lower") >= 0);
+    }
+    return teeth.has(String(fdi));
+  };
 }
 
 function caseToothSummary(c) {
@@ -809,30 +815,47 @@ function caseToothSummary(c) {
   return parts.join(" · ");
 }
 
-export function caseToothCard(c) {
-  const hi = caseHighlighted(c);
-  if (!hi.size && c.tooth_scope !== "arch" && c.tooth_scope !== "full_mouth") return "";
+// одна сетка зубов (верх + низ) с подсветкой по isOn
+function toothGrid(upperArr, lowerArr, isOn, label) {
   const W = 28, H = 32, GAP = 3, MID = 12, Y0 = 8, Y1 = 8 + H + 12;
-  const xOf = (i) => i * (W + GAP) + (i >= 8 ? MID : 0);
+  const half = upperArr.length / 2;
+  const xOf = (i) => i * (W + GAP) + (i >= half ? MID : 0);
   const cell = (fdi, x, y) => {
-    const on = hi.has(fdi);
+    const on = isOn(fdi);
     return `<g><rect x="${x}" y="${y}" width="${W}" height="${H}" rx="6" fill="${on ? "#1462FF" : "#fff"}" stroke="${on ? "#1462FF" : "#E6EAF0"}"></rect>` +
       `<text x="${x + W / 2}" y="${y + H / 2 + 4}" text-anchor="middle" font-size="10.5" font-weight="${on ? 700 : 500}" fill="${on ? "#fff" : "#8A94A6"}">${fdiDot(fdi)}</text></g>`;
   };
-  const upper = FDI_UPPER.map((t, i) => cell(t, xOf(i), Y0)).join("");
-  const lower = FDI_LOWER.map((t, i) => cell(t, xOf(i), Y1)).join("");
-  const midX = xOf(8) - MID / 2 - GAP / 2;
-  const totalW = xOf(15) + W;
+  const upper = upperArr.map((t, i) => cell(t, xOf(i), Y0)).join("");
+  const lower = lowerArr.map((t, i) => cell(t, xOf(i), Y1)).join("");
+  const midX = xOf(half) - MID / 2 - GAP / 2;
+  const totalW = xOf(upperArr.length - 1) + W;
   const totalH = Y1 + H + 6;
+  return `<div class="tooth-grid">${label ? `<div class="tooth-grid-label">${esc(label)}</div>` : ""}` +
+    `<svg class="tooth-svg" viewBox="0 0 ${totalW} ${totalH}" role="img" aria-label="${esc((label ? label + ": " : "") + "зубная формула")}" xmlns="http://www.w3.org/2000/svg">` +
+    `<line x1="${midX}" y1="2" x2="${midX}" y2="${totalH - 2}" stroke="#D5DCE6" stroke-width="1" stroke-dasharray="3 3"></line>${upper}${lower}</svg></div>`;
+}
+
+export function caseToothCard(c) {
+  const scope = c.tooth_scope;
+  const teeth = (c.teeth || []).map(String);
+  if (!(teeth.length || scope === "arch" || scope === "full_mouth")) return "";
+  const dents = c.dentition || [];
+  let showPerm = dents.indexOf("permanent") >= 0 || dents.indexOf("mixed") >= 0;
+  let showPrim = dents.indexOf("primary") >= 0 || dents.indexOf("mixed") >= 0;
+  if (!showPerm && !showPrim) {
+    showPrim = teeth.some((t) => /^[5-8]/.test(t)); // молочные FDI начинаются с 5-8
+    showPerm = teeth.some((t) => /^[1-4]/.test(t)) || scope === "arch" || scope === "full_mouth";
+    if (!showPerm && !showPrim) showPerm = true;
+  }
+  const twoRows = showPerm && showPrim;
+  const isOn = caseToothIsOn(c);
+  const grids =
+    (showPerm ? toothGrid(FDI_UPPER, FDI_LOWER, isOn, twoRows ? "Постоянные зубы" : "") : "") +
+    (showPrim ? toothGrid(FDI_UPPER_P, FDI_LOWER_P, isOn, twoRows ? "Молочные зубы" : "") : "");
   const summary = caseToothSummary(c);
-  const teethList = (c.teeth || []).map(fdiDot).join(", ");
-  const aria = `Зубная формула: ${summary}${teethList ? `, зубы ${teethList}` : ""}`;
   return `<div class="tooth-card">
     <div class="tooth-card-head"><span class="tooth-card-t">Зубная формула</span>${summary ? `<span class="tooth-summary">${esc(summary)}</span>` : ""}</div>
-    <svg class="tooth-svg" viewBox="0 0 ${totalW} ${totalH}" role="img" aria-label="${esc(aria)}" xmlns="http://www.w3.org/2000/svg">
-      <line x1="${midX}" y1="2" x2="${midX}" y2="${totalH - 2}" stroke="#D5DCE6" stroke-width="1" stroke-dasharray="3 3"></line>
-      ${upper}${lower}
-    </svg>
+    <div class="tooth-grids${twoRows ? " tooth-grids--two" : ""}">${grids}</div>
   </div>`;
 }
 

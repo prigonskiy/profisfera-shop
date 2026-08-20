@@ -350,15 +350,17 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
       }).join("") + `</div>`
     : `<p class="tab-empty">Документов нет.</p>`;
 
-  // Единая страница информации + якорная навигация (было — переключалки-табы).
+  // Единая страница информации + якорная навигация. Кейсы — полноправная секция внутри.
   const hasCases = (p.cases || []).length > 0;
-  const anchors = `<a href="#p-desc">Описание</a><a href="#p-docs">Документы</a><a href="#p-files">Файлы</a>` +
+  const anchors = `<a href="#p-desc">Описание</a><a href="#p-docs">Документы</a>` +
     (hasCases ? `<a href="#p-cases">Кейсы</a>` : "");
+  const casesSec = hasCases
+    ? `<section class="pinfo-sec" id="p-cases">${casesInner(p, SITE_BASE)}</section>` : "";
   const productInfo = `<div class="product-info">` +
     `<nav class="pinfo-nav">${anchors}</nav>` +
     `<section class="pinfo-sec" id="p-desc"><h2 class="pinfo-h">Описание</h2>${descHtml}${logi}</section>` +
     `<section class="pinfo-sec" id="p-docs"><h2 class="pinfo-h">Документы</h2>${docsHtml}</section>` +
-    `<section class="pinfo-sec" id="p-files"><h2 class="pinfo-h">Файлы</h2><p class="tab-empty">Раздел файлов появится позже.</p></section>` +
+    casesSec +
   `</div>`;
 
   const trail = [{ name: "Каталог", href: SITE_BASE + "/" }];
@@ -368,11 +370,11 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
 
   return `${crumbs(trail)}
   <div class="product-top"><div class="product-main-card">${gallery}${info}</div><div class="product-side">${buybox}${educationBlock(p)}</div></div>
-  ${productInfo}${casesBlock(p, SITE_BASE)}`;
+  ${productInfo}`;
 }
 
 /** «Кейсы с этим товаром» — плитки из p.cases[] (до 6, дальше ссылка на общий раздел). */
-function casesBlock(p, SITE_BASE) {
+function casesInner(p, SITE_BASE) {
   const cases = p.cases || [];
   if (!cases.length) return "";
   const PROFILE = { clinical: "Клинический", lab: "Зуботехнический", joint: "Смешанный" };
@@ -387,5 +389,5 @@ function casesBlock(p, SITE_BASE) {
       `<div class="case-body">${num}<h3 class="case-title">${esc(c.title || "")}</h3></div></a>`;
   }).join("");
   const more = cases.length > CAP ? `<a class="cases-more" href="${SITE_BASE}/cases/">Все кейсы \u2192</a>` : "";
-  return `<section class="product-cases" id="p-cases"><div class="pc-head"><h2 class="case-h2">Кейсы с этим товаром</h2>${more}</div><div class="cases-grid">${tiles}</div></section>`;
+  return `<div class="pc-head"><h2 class="pinfo-h">Кейсы с этим товаром</h2>${more}</div><div class="cases-grid">${tiles}</div>`;
 }

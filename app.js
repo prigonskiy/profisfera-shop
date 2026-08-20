@@ -9,7 +9,7 @@ function buildMainnavCats(roots){
   const box = $("#mainnav-cats"); if(!box) return;
   // разделы рядом с «Каталогом»; категории — внутри кнопки «Каталог»
   box.innerHTML = `<a class="nav-cat-link" href="brands/">Бренды</a>`
-    + `<span class="nav-cat-link nav-soon" title="Скоро">Кейсы</span>`
+    + `<a class="nav-cat-link" href="cases/">Кейсы</a>`
     + `<span class="nav-cat-link nav-soon" title="Скоро">Справочник</span>`;
 }
 
