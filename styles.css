@@ -603,9 +603,12 @@ a.card{text-decoration:none;color:inherit}
 .case-gitem img{width:100%;height:100%;object-fit:cover;display:block}
 /* тело статьи */
 .case-article{font-size:16px;line-height:1.7;color:var(--ink)}
-.case-article figure{margin:20px 0;text-align:center}
-.case-article figure img{max-width:100%;height:auto;border-radius:12px;cursor:zoom-in}
-.case-article figcaption{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5}
+.case-article::after{content:"";display:block;clear:both}
+.case-article figure{float:left;width:42%;max-width:300px;margin:6px 22px 12px 0}
+.case-article figure img{width:100%;height:auto;border-radius:12px;cursor:zoom-in;border:1px solid var(--line);display:block}
+.case-article figcaption{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.45}
+.case-article h2,.case-article h3{clear:both}
+@media (max-width:640px){.case-article figure{float:none;width:auto;max-width:100%;margin:16px 0}}
 .case-article h2{font-size:22px;margin:28px 0 12px}
 .case-article h3{font-size:18px;margin:22px 0 10px}
 .case-article p{margin:0 0 14px}
@@ -628,3 +631,27 @@ body.lb-open{overflow:hidden}
 .lb-nav:hover{background:rgba(255,255,255,.2)}
 .lb-prev{left:12px}.lb-next{right:12px}
 @media (max-width:760px){ .lb-nav{width:40px;height:52px;font-size:26px} .case-h1{font-size:23px} }
+
+/* ---------- фильтры кейсов в подразделе ---------- */
+.case-filters{display:flex;flex-wrap:wrap;gap:18px 32px;margin:0 0 22px;padding:14px 16px;background:var(--bg);border-radius:14px}
+.case-fgroup{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.case-flabel{font-size:13px;font-weight:700;color:var(--muted)}
+.case-fchips{display:flex;flex-wrap:wrap;gap:7px}
+.case-fchip{padding:6px 12px;border:1px solid var(--line);border-radius:20px;background:#fff;color:var(--ink);font-size:13px;cursor:pointer}
+.case-fchip:hover{border-color:var(--primary)}
+.case-fchip.on{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+
+/* ---------- товары кейса построчно ---------- */
+.case-prod-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.cpr{display:flex;align-items:center;gap:14px;padding:12px 14px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink)}
+.cpr:last-child{border-bottom:0}
+.cpr:hover{background:var(--bg)}
+.cpr-img{flex:0 0 56px;width:56px;height:56px;border-radius:8px;overflow:hidden;background:var(--bg);display:grid;place-items:center}
+.cpr-img img{width:100%;height:100%;object-fit:contain}
+.cpr-img .noimg{font-size:18px;color:var(--muted)}
+.cpr-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cpr-name{font-weight:600;font-size:14px}
+.cpr-brand{font-size:12.5px;color:var(--muted)}
+.cpr-note{font-size:12.5px;color:var(--muted)}
+.cpr-price{flex:0 0 auto;font-weight:600;font-size:14px;white-space:nowrap}
+@media (max-width:560px){.cpr-price{display:none}}

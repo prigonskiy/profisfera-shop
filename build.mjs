@@ -714,7 +714,8 @@ export function caseTile(c, dirName) {
     ? `<span class="case-badge case-badge--${esc(c.case_profile)}">${CASE_PROFILE_SHORT[c.case_profile]}</span>` : "";
   const dirs = (c.directions || []).map((d) => `<span class="case-dir">${esc(dirName ? dirName(d) : d)}</span>`).join("");
   const num = c.case_number ? `<div class="case-num">Кейс №${esc(c.case_number)}</div>` : "";
-  return `<a class="case-card" href="${SITE_BASE}/cases/${esc(c.slug)}/">
+  const dataDirs = (c.directions || []).join(" ");
+  return `<a class="case-card" href="${SITE_BASE}/cases/${esc(c.slug)}/" data-dirs="${esc(dataDirs)}" data-profile="${esc(c.case_profile || "")}">
     <div class="case-cover">${cover}${prof}</div>
     <div class="case-body">${num}<h3 class="case-title">${esc(c.title || "")}</h3>${dirs ? `<div class="case-dirs">${dirs}</div>` : ""}</div>
   </a>`;
@@ -746,11 +747,24 @@ export function casesRootPage(rootCases, subsections, dirName) {
 
 export function casesSubPage(title, slug, cases, dirName) {
   const trail = [{ name: "Главная", href: `${SITE_BASE}/` }, { name: "Кейсы", href: `${SITE_BASE}/cases/` }, { name: title }];
+  // фильтры: собираем встречающиеся направления и профили (union по кейсам подраздела)
+  const dirSet = [], dSeen = new Set();
+  cases.forEach((c) => (c.directions || []).forEach((d) => { if (!dSeen.has(d)) { dSeen.add(d); dirSet.push(d); } }));
+  const profSet = [], pSeen = new Set();
+  cases.forEach((c) => { const pr = c.case_profile; if (pr && !pSeen.has(pr)) { pSeen.add(pr); profSet.push(pr); } });
+  const chip = (group, val, label) => `<button type="button" class="case-fchip" data-group="${group}" data-val="${esc(val)}">${esc(label)}</button>`;
+  const dirGroup = dirSet.length > 1
+    ? `<div class="case-fgroup"><span class="case-flabel">Направление</span><div class="case-fchips">${dirSet.map((d) => chip("dir", d, dirName ? dirName(d) : d)).join("")}</div></div>` : "";
+  const profGroup = profSet.length > 1
+    ? `<div class="case-fgroup"><span class="case-flabel">Профиль</span><div class="case-fchips">${profSet.map((p) => chip("profile", p, CASE_PROFILE[p] || p)).join("")}</div></div>` : "";
+  const filterBar = (dirGroup || profGroup) ? `<div class="case-filters" data-total="${cases.length}">${dirGroup}${profGroup}</div>` : "";
+
   const content = `<main class="page-shell">
   ${crumbs(trail)}
-  <div class="main-head"><div class="main-head-l"><h1>${esc(title)}</h1><div class="count"><b>${cases.length}</b> ${plural(cases.length, "кейс", "кейса", "кейсов")}</div></div></div>
+  <div class="main-head"><div class="main-head-l"><h1>${esc(title)}</h1><div class="count" id="case-count"><b>${cases.length}</b> ${plural(cases.length, "кейс", "кейса", "кейсов")}</div></div></div>
+  ${filterBar}
   ${caseGrid(cases, dirName)}
-</main>`;
+</main>${filterBar ? `\n<script src="${SITE_BASE}/case-filter.js" defer></script>` : ""}`;
   return layout({
     title: `${title} — ПрофиСфера`,
     description: `${title}: разбор случаев с применёнными материалами и инструментами.`,
@@ -833,6 +847,20 @@ function caseGalleryStrip(media) {
   return `<div class="case-gallery"><div class="case-gallery-h">Галерея</div><div class="case-gstrip">${cells}</div></div>`;
 }
 
+/** Построчный вид товара, привязанного к кейсу (список, не карточки). */
+export function caseProductRow(p) {
+  const img = p.image
+    ? `<img src="${esc(p.image)}" alt="${esc(p.name || "")}" loading="lazy">`
+    : `<span class="noimg">\u2014</span>`;
+  const brand = p.brand ? `<span class="cpr-brand">${esc(p.brand)}</span>` : "";
+  const price = p.price_from ? "от " + fmtPrice(p.price_from) : "Цена по запросу";
+  const note = p.note ? `<span class="cpr-note">${esc(p.note)}</span>` : "";
+  return `<a class="cpr" href="${SITE_BASE}/product/${esc(p.slug)}/">` +
+    `<span class="cpr-img">${img}</span>` +
+    `<span class="cpr-main"><span class="cpr-name">${esc(p.name || "")}</span>${brand}${note}</span>` +
+    `<span class="cpr-price">${price}</span></a>`;
+}
+
 export function caseProductTile(p) {
   const img = p.image
     ? `<div class="card-img"><img src="${esc(p.image)}" alt="${esc(p.name || "")}" loading="lazy"></div>`
@@ -863,7 +891,7 @@ export function casePage(c, dirName) {
   const metaBits = [c.case_number ? `Кейс №${esc(c.case_number)}` : "", esc(c.author_line || ""), ruDate(c.published_at)].filter(Boolean).join(" · ");
   const products = (c.products || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
   const productsBlock = products.length
-    ? `<section class="case-products"><h2 class="case-h2">Товары из кейса</h2><div class="grid">${products.map(caseProductTile).join("")}</div></section>`
+    ? `<section class="case-products"><h2 class="case-h2">Товары из кейса</h2><div class="case-prod-list">${products.map(caseProductRow).join("")}</div></section>`
     : "";
   const body = c.body_html ? `<div class="rich case-article">${c.body_html}</div>` : "";
 
@@ -875,9 +903,9 @@ export function casePage(c, dirName) {
     ${metaBits ? `<div class="case-meta">${metaBits}</div>` : ""}
   </header>
   ${caseToothCard(c)}
-  ${caseGalleryStrip(c.media)}
   ${body}
   ${productsBlock}
+  ${caseGalleryStrip(c.media)}
 </main>
 <script src="${SITE_BASE}/case.js" defer></script>`;
   return layout({
@@ -940,7 +968,7 @@ function collectCategories(nodes) {
   return out;
 }
 async function copyStatic() {
-  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js", "catalog-menu.js", "case.js", "search.js", "auth.js", "course.js", "ic-user.svg", "ic-cart.svg", "ic-cart-sm.svg", "ic-caret.svg", "ic-burger.svg", "ic-cat-tools.svg", "ic-cat-materials.svg", "ic-cat-equipment.svg", "ic-stock.svg", "ic-delivery.svg", "ic-bonus.svg", "banner-devices.png"]) {
+  for (const f of ["app.js", "styles.css", "product.css", "logo.svg", "render-product.js", "category-filters.js", "category-nav.js", "catalog-menu.js", "case.js", "case-filter.js", "search.js", "auth.js", "course.js", "ic-user.svg", "ic-cart.svg", "ic-cart-sm.svg", "ic-caret.svg", "ic-burger.svg", "ic-cat-tools.svg", "ic-cat-materials.svg", "ic-cat-equipment.svg", "ic-stock.svg", "ic-delivery.svg", "ic-bonus.svg", "banner-devices.png"]) {
     const src = path.join(ROOT, f);
     if (existsSync(src)) await copyFile(src, path.join(OUT, f));
   }

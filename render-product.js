@@ -350,14 +350,15 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
       }).join("") + `</div>`
     : `<p class="tab-empty">Документов нет.</p>`;
 
-  const tabs = `<div class="product-tabs">` +
-    `<input type="radio" name="ptab" id="ptab-desc" class="ptab-r" checked>` +
-    `<input type="radio" name="ptab" id="ptab-docs" class="ptab-r">` +
-    `<input type="radio" name="ptab" id="ptab-files" class="ptab-r">` +
-    `<div class="ptab-labels"><label for="ptab-desc">Описание</label><label for="ptab-docs">Документы</label><label for="ptab-files">Файлы</label></div>` +
-    `<div class="ptab-panel ptab-desc">${descHtml}${logi}</div>` +
-    `<div class="ptab-panel ptab-docs">${docsHtml}</div>` +
-    `<div class="ptab-panel ptab-files"><p class="tab-empty">Раздел файлов появится позже.</p></div>` +
+  // Единая страница информации + якорная навигация (было — переключалки-табы).
+  const hasCases = (p.cases || []).length > 0;
+  const anchors = `<a href="#p-desc">Описание</a><a href="#p-docs">Документы</a><a href="#p-files">Файлы</a>` +
+    (hasCases ? `<a href="#p-cases">Кейсы</a>` : "");
+  const productInfo = `<div class="product-info">` +
+    `<nav class="pinfo-nav">${anchors}</nav>` +
+    `<section class="pinfo-sec" id="p-desc"><h2 class="pinfo-h">Описание</h2>${descHtml}${logi}</section>` +
+    `<section class="pinfo-sec" id="p-docs"><h2 class="pinfo-h">Документы</h2>${docsHtml}</section>` +
+    `<section class="pinfo-sec" id="p-files"><h2 class="pinfo-h">Файлы</h2><p class="tab-empty">Раздел файлов появится позже.</p></section>` +
   `</div>`;
 
   const trail = [{ name: "Каталог", href: SITE_BASE + "/" }];
@@ -367,7 +368,7 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
 
   return `${crumbs(trail)}
   <div class="product-top"><div class="product-main-card">${gallery}${info}</div><div class="product-side">${buybox}${educationBlock(p)}</div></div>
-  ${tabs}${casesBlock(p, SITE_BASE)}`;
+  ${productInfo}${casesBlock(p, SITE_BASE)}`;
 }
 
 /** «Кейсы с этим товаром» — плитки из p.cases[] (до 6, дальше ссылка на общий раздел). */
@@ -386,5 +387,5 @@ function casesBlock(p, SITE_BASE) {
       `<div class="case-body">${num}<h3 class="case-title">${esc(c.title || "")}</h3></div></a>`;
   }).join("");
   const more = cases.length > CAP ? `<a class="cases-more" href="${SITE_BASE}/cases/">Все кейсы \u2192</a>` : "";
-  return `<section class="product-cases"><div class="pc-head"><h2 class="case-h2">Кейсы с этим товаром</h2>${more}</div><div class="cases-grid">${tiles}</div></section>`;
+  return `<section class="product-cases" id="p-cases"><div class="pc-head"><h2 class="case-h2">Кейсы с этим товаром</h2>${more}</div><div class="cases-grid">${tiles}</div></section>`;
 }
