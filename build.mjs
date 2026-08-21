@@ -854,7 +854,7 @@ export function caseToothCard(c) {
     (showPrim ? toothGrid(FDI_UPPER_P, FDI_LOWER_P, isOn, twoRows ? "Молочные зубы" : "") : "");
   const summary = caseToothSummary(c);
   return `<div class="tooth-card">
-    <div class="tooth-card-head"><span class="tooth-card-t">Зубная формула</span>${summary ? `<span class="tooth-summary">${esc(summary)}</span>` : ""}</div>
+    <div class="tooth-card-head"><h2 class="tooth-card-t">Зубная формула</h2>${summary ? `<span class="tooth-summary">${esc(summary)}</span>` : ""}</div>
     <div class="tooth-grids${twoRows ? " tooth-grids--two" : ""}">${grids}</div>
   </div>`;
 }
@@ -867,7 +867,7 @@ function caseGalleryStrip(media) {
     return `<button type="button" class="case-gitem"${ar} data-lb="${esc(m.preview || m.thumb || "")}" data-cap="${esc(m.caption || "")}">` +
       `<img src="${esc(m.thumb || "")}" alt="${esc(m.alt || "")}" loading="lazy"${m.width ? ` width="${m.width}"` : ""}${m.height ? ` height="${m.height}"` : ""}></button>`;
   }).join("");
-  return `<div class="case-gallery"><div class="case-gallery-h">Галерея</div><div class="case-gstrip">${cells}</div></div>`;
+  return `<div class="case-gallery"><h2 class="case-h2">Галерея</h2><div class="case-gstrip">${cells}</div></div>`;
 }
 
 /** Построчный вид товара, привязанного к кейсу (список, не карточки). */
@@ -907,6 +907,30 @@ function caseJsonLd(c) {
   return `<script type="application/ld+json">${JSON.stringify(obj).replace(/</g, "\\u003c")}</script>`;
 }
 
+/** Инлайн-карточка упомянутого товара — на место маркера в теле кейса. */
+function caseInlineProduct(p) {
+  const img = p.image
+    ? `<img src="${esc(p.image)}" alt="${esc(p.name || "")}" loading="lazy">`
+    : `<span class="noimg">\u2014</span>`;
+  const price = p.price_from ? "от " + fmtPrice(p.price_from) : "Цена по запросу";
+  return `<a class="cip" href="${SITE_BASE}/product/${esc(p.slug)}/">` +
+    `<span class="cip-img">${img}</span>` +
+    `<span class="cip-main"><span class="cip-name">${esc(p.name || "")}</span>${p.brand ? `<span class="cip-brand">${esc(p.brand)}</span>` : ""}</span>` +
+    `<span class="cip-price">${price}</span></a>`;
+}
+/** Подставляет карточки на место маркеров <div class="case-product" data-product="SLUG"></div>
+ *  (пустые самозакрытые div'ы). Данные — из case.products[] по slug; если товара в наборе нет
+ *  (не должно быть — PIM чистит), маркер просто удаляется. */
+function injectCaseProducts(html, products) {
+  if (!html) return "";
+  const bySlug = {};
+  (products || []).forEach((p) => { if (p.slug) bySlug[p.slug] = p; });
+  return html.replace(/<div\b[^>]*\bdata-product="([^"]*)"[^>]*>\s*<\/div>/gi, (m, slug) => {
+    const p = bySlug[slug];
+    return p ? caseInlineProduct(p) : "";
+  });
+}
+
 export function casePage(c, dirName) {
   const trail = [{ name: "Главная", href: `${SITE_BASE}/` }, { name: "Кейсы", href: `${SITE_BASE}/cases/` }, { name: c.title || "Кейс" }];
   const prof = CASE_PROFILE[c.case_profile] ? `<span class="case-badge case-badge--${esc(c.case_profile)} case-badge--inline">${CASE_PROFILE[c.case_profile]}</span>` : "";
@@ -914,9 +938,9 @@ export function casePage(c, dirName) {
   const metaBits = [c.case_number ? `Кейс №${esc(c.case_number)}` : "", esc(c.author_line || ""), ruDate(c.published_at)].filter(Boolean).join(" · ");
   const products = (c.products || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
   const productsBlock = products.length
-    ? `<section class="case-products"><h2 class="case-h2">Товары из кейса</h2><div class="case-prod-list">${products.map(caseProductRow).join("")}</div></section>`
+    ? `<section class="case-products"><div class="case-products-head"><h2 class="case-h2">Товары из кейса</h2><button type="button" class="btn-addall">Добавить все в корзину</button></div><div class="case-prod-list">${products.map(caseProductRow).join("")}</div></section>`
     : "";
-  const body = c.body_html ? `<div class="rich case-article">${c.body_html}</div>` : "";
+  const body = c.body_html ? `<div class="rich case-article">${injectCaseProducts(c.body_html, c.products)}</div>` : "";
 
   const content = `<main class="page-shell case-page">
   ${crumbs(trail)}
@@ -1225,9 +1249,20 @@ async function main() {
   const allCases = await fetchList("/api/cases/");                 // свежие вперёд
   let featuredCases = [];
   try { featuredCases = await fetchList("/api/cases/?featured=1"); } catch (e) { featuredCases = []; }
-  const stomCases = allCases.filter((c) => c.case_profile === "clinical" || c.case_profile === "joint");
-  const zubCases = allCases.filter((c) => c.case_profile === "lab" || c.case_profile === "joint");
-  const rootCases = featuredCases.length ? featuredCases : allCases; // корень: избранные, иначе свежие
+  // Детальные данные тянем один раз: в них есть directions/case_profile (список их может не
+  // отдавать — из-за этого фильтры подразделов были пустыми). Нужны и фильтрам, и страницам кейсов.
+  const fullBySlug = {};
+  const fullCases = [];
+  for (const tile of allCases) {
+    if (!tile.slug) continue;
+    const full = await getJSON(`/api/cases/${tile.slug}/`);
+    fullBySlug[tile.slug] = full;
+    fullCases.push(full);
+  }
+  const enrich = (t) => (t && fullBySlug[t.slug]) || t;
+  const stomCases = fullCases.filter((c) => c.case_profile === "clinical" || c.case_profile === "joint");
+  const zubCases = fullCases.filter((c) => c.case_profile === "lab" || c.case_profile === "joint");
+  const rootCases = (featuredCases.length ? featuredCases : allCases).map(enrich); // корень: избранные, иначе свежие
   const subsections = [
     { title: "Стоматологические кейсы", slug: "stomatologicheskie", count: stomCases.length },
     { title: "Зуботехнические кейсы", slug: "zubotehnicheskie", count: zubCases.length },
@@ -1244,10 +1279,10 @@ async function main() {
     await writeFile(path.join(OUT, "cases", sslug, "index.html"), casesSubPage(stitle, sslug, scases, dirName), "utf8");
     urls.push(`${SITE_BASE}/cases/${sslug}/`);
   }
-  // детальные страницы кейсов
+  // детальные страницы кейсов (данные уже загружены выше)
   for (const tile of allCases) {
-    if (!tile.slug) continue;
-    const full = await getJSON(`/api/cases/${tile.slug}/`);
+    const full = fullBySlug[tile.slug];
+    if (!full) continue;
     const cdir = path.join(OUT, "cases", tile.slug);
     await mkdir(cdir, { recursive: true });
     await writeFile(path.join(cdir, "index.html"), casePage(full, dirName), "utf8");
