@@ -603,12 +603,9 @@ a.card{text-decoration:none;color:inherit}
 .case-gitem img{width:100%;height:100%;object-fit:cover;display:block}
 /* тело статьи */
 .case-article{font-size:16px;line-height:1.7;color:var(--ink)}
-.case-article::after{content:"";display:block;clear:both}
-.case-article figure{float:left;width:42%;max-width:300px;margin:6px 22px 12px 0}
-.case-article figure img{width:100%;height:auto;border-radius:12px;cursor:zoom-in;border:1px solid var(--line);display:block}
+.case-article figure{margin:18px 0}
+.case-article figure img{max-width:100%;height:auto;border-radius:12px;cursor:zoom-in;border:1px solid var(--line);display:block}
 .case-article figcaption{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.45}
-.case-article h2,.case-article h3{clear:both}
-@media (max-width:640px){.case-article figure{float:none;width:auto;max-width:100%;margin:16px 0}}
 .case-article h2{font-size:22px;margin:28px 0 12px}
 .case-article h3{font-size:18px;margin:22px 0 10px}
 .case-article p{margin:0 0 14px}

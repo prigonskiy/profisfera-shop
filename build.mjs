@@ -753,11 +753,11 @@ export function casesSubPage(title, slug, cases, dirName) {
   const profSet = [], pSeen = new Set();
   cases.forEach((c) => { const pr = c.case_profile; if (pr && !pSeen.has(pr)) { pSeen.add(pr); profSet.push(pr); } });
   const chip = (group, val, label) => `<button type="button" class="case-fchip" data-group="${group}" data-val="${esc(val)}">${esc(label)}</button>`;
-  const dirGroup = dirSet.length > 1
+  const dirGroup = dirSet.length >= 1
     ? `<div class="case-fgroup"><span class="case-flabel">Направление</span><div class="case-fchips">${dirSet.map((d) => chip("dir", d, dirName ? dirName(d) : d)).join("")}</div></div>` : "";
-  const profGroup = profSet.length > 1
+  const profGroup = profSet.length >= 1
     ? `<div class="case-fgroup"><span class="case-flabel">Профиль</span><div class="case-fchips">${profSet.map((p) => chip("profile", p, CASE_PROFILE[p] || p)).join("")}</div></div>` : "";
-  const filterBar = (dirGroup || profGroup) ? `<div class="case-filters" data-total="${cases.length}">${dirGroup}${profGroup}</div>` : "";
+  const filterBar = (cases.length >= 2 && (dirGroup || profGroup)) ? `<div class="case-filters" data-total="${cases.length}">${dirGroup}${profGroup}</div>` : "";
 
   const content = `<main class="page-shell">
   ${crumbs(trail)}
@@ -831,7 +831,7 @@ function toothGrid(upperArr, lowerArr, isOn, label) {
   const totalW = xOf(upperArr.length - 1) + W;
   const totalH = Y1 + H + 6;
   return `<div class="tooth-grid">${label ? `<div class="tooth-grid-label">${esc(label)}</div>` : ""}` +
-    `<svg class="tooth-svg" viewBox="0 0 ${totalW} ${totalH}" role="img" aria-label="${esc((label ? label + ": " : "") + "зубная формула")}" xmlns="http://www.w3.org/2000/svg">` +
+    `<svg class="tooth-svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" role="img" aria-label="${esc((label ? label + ": " : "") + "зубная формула")}" xmlns="http://www.w3.org/2000/svg">` +
     `<line x1="${midX}" y1="2" x2="${midX}" y2="${totalH - 2}" stroke="#D5DCE6" stroke-width="1" stroke-dasharray="3 3"></line>${upper}${lower}</svg></div>`;
 }
 
