@@ -207,3 +207,13 @@
 .pc-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px}
 .pc-head .case-h2{margin:0}
 .cases-more{font-size:14px;font-weight:600;color:var(--primary);text-decoration:none;white-space:nowrap}
+
+/* фасетный блок «по специалистам» на карточке товара */
+.product-facets{margin:18px 0;padding:16px 18px;background:var(--bg);border:1px solid var(--line);border-radius:14px}
+.facet-head{font-weight:700;font-size:14px;color:var(--ink);margin-bottom:12px}
+.facet-group{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:8px 0}
+.facet-label{font-size:13px;font-weight:600;color:var(--muted);min-width:150px}
+.facet-chips{display:flex;flex-wrap:wrap;gap:8px}
+.facet-chip{display:inline-flex;padding:7px 13px;border:1px solid var(--line);border-radius:20px;background:#fff;color:var(--ink);font-size:13px;text-decoration:none}
+.facet-chip:hover{border-color:var(--primary);color:var(--primary)}
+@media (max-width:640px){.facet-label{min-width:0;width:100%}}

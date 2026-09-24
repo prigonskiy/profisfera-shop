@@ -179,17 +179,19 @@ function searchPage() {
 }
 
 /* ---------- страница товара ---------- */
-function productPage(p, categoryTrail) {
+function productPage(p, categoryTrail, facets) {
   const canonical = `${SITE_BASE}/product/${p.slug}/`;
   const main = mainImage(p);
   const trail = categoryTrail || [];
   const trailJson = JSON.stringify(trail).replace(/</g, "\\u003c");
+  const facetsJson = JSON.stringify(facets || {}).replace(/</g, "\\u003c");
 
   // Живая подгрузка: страница тянет свежие данные и перерисовывает тело тем же кодом.
   // Путь категории (CATEGORY_TRAIL) статичен — встроен один раз и передаётся в рендер.
   const hydrate = `<script type="module">
 import { productMain } from "${SITE_BASE}/render-product.js";
 const CATEGORY_TRAIL = ${trailJson};
+const FACET_LINKS = ${facetsJson};
 const API = ${JSON.stringify(API_BASE)};
 const SITE = ${JSON.stringify(SITE_BASE)};
 const SLUG = ${JSON.stringify(p.slug)};
@@ -206,7 +208,7 @@ async function renderProduct() {
   }
   const role = (auth && auth.activeRole) || null;
   const m = document.querySelector(".product-shell");
-  if (m) m.innerHTML = productMain(d, SITE, CATEGORY_TRAIL, role);
+  if (m) m.innerHTML = productMain(d, SITE, CATEGORY_TRAIL, role, FACET_LINKS);
 }
 renderProduct();
 window.addEventListener("profi:auth", renderProduct);
@@ -246,7 +248,7 @@ document.addEventListener("click", function (e) {
 });
 </script>`;
 
-  const content = `<main class="product-shell">${productMain(p, SITE_BASE, trail)}</main>
+  const content = `<main class="product-shell">${productMain(p, SITE_BASE, trail, null, facets)}</main>
 ${hydrate}`;
   return layout({
     title: `${p.name} — ПрофиСфера`,
@@ -1052,30 +1054,44 @@ async function main() {
         if (g.products.length >= minSlice) sliceThick.add(`${sec.slug}|${d.slug}|${g.catSlug}`);
 
   const slugOf = (x) => (x && (x.slug || x)) || null;
-  /** «Домашние» крошки карточки (root-relative url'ы): для товара с направлениями —
-   *  Раздел → Направление → Категория (по приоритету breadcrumb_priority); без
-   *  направлений — Раздел(аудитория) → Категория; фолбэк — только категория. */
+  /** Крошки карточки — КАНОНИЧЕСКИЙ путь по дереву (Материалы → семейство → лист),
+   *  однозначный, из trailBySlug (тот же, что у страниц категорий). Фолбэк — только лист. */
   function homeTrail(detail) {
     const catSlug = detail.category && detail.category.slug;
-    const catNm = (detail.category && detail.category.name) || (catSlug && catName(catSlug)) || "";
-    const norm = { directions: (detail.directions || []).map(slugOf).filter(Boolean) };
-    const home = resolveHomeDirection(norm, catalogConfig, dirLookup);
-    const items = [];
-    if (home) {
-      items.push({ name: home.sectionTitle, url: `/${home.sectionSlug}/` });
-      items.push({ name: home.dirTitle, url: `/${home.sectionSlug}/${home.dirSlug}/` });
-      if (catSlug) {
-        const thick = sliceThick.has(`${home.sectionSlug}|${home.dirSlug}|${catSlug}`);
-        items.push({ name: catNm, url: thick ? `/${home.sectionSlug}/${home.dirSlug}/${catSlug}/` : `/c/${catSlug}/` });
-      }
-    } else {
-      const aud = slugOf((detail.audiences || [])[0]);
-      const sec = aud ? sectionByAudience(catalogConfig, aud) : null;
-      if (sec) items.push({ name: sec.title, url: `/${sec.slug}/` });
-      if (catSlug) items.push({ name: catNm, url: `/c/${catSlug}/` });
+    if (catSlug && trailBySlug[catSlug] && trailBySlug[catSlug].length) {
+      return trailBySlug[catSlug].map((c) => ({ name: c.name, url: `/c/${c.slug}/` }));
     }
-    if (!items.length && catSlug) items.push({ name: catNm, url: `/c/${catSlug}/` });
-    return items;
+    const catNm = (detail.category && detail.category.name) || (catSlug && catName(catSlug)) || "";
+    return catSlug ? [{ name: catNm, url: `/c/${catSlug}/` }] : [];
+  }
+
+  /** Фасетные ссылки для блока «по специалистам»: аудитории, направления и
+   *  «категория × направление» (напр. «Адгезивы — Ортопедия»). Пути root-relative. */
+  function facetLinks(detail) {
+    const catSlug = detail.category && detail.category.slug;
+    const catNm = (detail.category && detail.category.name) || (catSlug && catName(catSlug)) || "";
+    const audiences = [], directions = [], slices = [];
+    const seenA = new Set(), seenD = new Set();
+    for (const dSlug of (detail.directions || []).map(slugOf).filter(Boolean)) {
+      const h = dirLookup[dSlug];
+      if (!h) continue;
+      if (!seenA.has(h.sectionSlug)) { seenA.add(h.sectionSlug); audiences.push({ name: h.sectionTitle, url: h.sectionUrl }); }
+      if (!seenD.has(h.dirSlug)) {
+        seenD.add(h.dirSlug);
+        directions.push({ name: h.dirTitle, url: h.dirUrl });
+        if (catSlug) {
+          const thick = sliceThick.has(`${h.sectionSlug}|${h.dirSlug}|${catSlug}`);
+          slices.push({ name: `${catNm} — ${h.dirTitle}`, url: thick ? `/${h.sectionSlug}/${h.dirSlug}/${catSlug}/` : `/c/${catSlug}/` });
+        }
+      }
+    }
+    if (!audiences.length) {
+      for (const aSlug of (detail.audiences || []).map(slugOf).filter(Boolean)) {
+        const sec = sectionByAudience(catalogConfig, aSlug);
+        if (sec && !seenA.has(sec.slug)) { seenA.add(sec.slug); audiences.push({ name: sec.title, url: `/${sec.slug}/` }); }
+      }
+    }
+    return { audiences, directions, slices };
   }
 
   const charsBySlug = {}; // slug -> { code: value } (значения характеристик для фильтров)
@@ -1089,7 +1105,7 @@ async function main() {
     const trail = homeTrail(detail);
     const dir = path.join(OUT, "product", item.slug);
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, "index.html"), productPage(detail, trail), "utf8");
+    await writeFile(path.join(dir, "index.html"), productPage(detail, trail, facetLinks(detail)), "utf8");
     urls.push(`${SITE_BASE}/product/${item.slug}/`);
     n++;
   }

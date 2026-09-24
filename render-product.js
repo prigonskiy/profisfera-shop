@@ -218,7 +218,7 @@ export function productJsonLd(p, SITE_BASE, categoryTrail) {
   return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
 }
 
-export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
+export function productMain(p, SITE_BASE, categoryTrail, activeRole, facets) {
   const imgs = p.images || [];
   const main = mainImage(p);
   const first = imgs[0] || null;
@@ -368,8 +368,20 @@ export function productMain(p, SITE_BASE, categoryTrail, activeRole) {
   else if (p.category && p.category.slug) trail.push({ name: p.category.name, href: SITE_BASE + "/c/" + p.category.slug + "/" });
   trail.push({ name: p.name });
 
+  // Фасетный «каталог по специалистам»: аудитории / направления / категория×направление.
+  // Пути пресчитаны на сборке (facets); крошки при этом остаются каноническими.
+  const fchips = (arr) => (arr || []).map((x) => `<a class="facet-chip" href="${SITE_BASE}${x.url}">${esc(x.name)}</a>`).join("");
+  const fgroup = (label, arr) => (arr && arr.length) ? `<div class="facet-group"><span class="facet-label">${label}</span><div class="facet-chips">${fchips(arr)}</div></div>` : "";
+  const f = facets || {};
+  const facetBlock = (f.audiences && f.audiences.length) || (f.directions && f.directions.length) || (f.slices && f.slices.length)
+    ? `<div class="product-facets"><div class="facet-head">Найти в каталоге по специалистам</div>` +
+      fgroup("Для кого", f.audiences) + fgroup("Направления", f.directions) + fgroup("Категория в направлении", f.slices) +
+      `</div>`
+    : "";
+
   return `${crumbs(trail)}
   <div class="product-top"><div class="product-main-card">${gallery}${info}</div><div class="product-side">${buybox}${educationBlock(p)}</div></div>
+  ${facetBlock}
   ${productInfo}`;
 }
 
