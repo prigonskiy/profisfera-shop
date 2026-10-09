@@ -157,8 +157,6 @@ function productTile(p, opts) {
     : `<div class="card-img"><span class="noimg">без фото</span></div>`;
   const art = p.manufacturer_sku ? `<div class="card-sku">Артикул: ${esc(p.manufacturer_sku)}</div>` : "";
   const brand = p.brand ? `<div class="card-brand">${esc(p.brand)}</div>` : "";
-  // член серии рендерится в DOM скрытым: групповая плитка показана по умолчанию,
-  // карточки-члены раскрываются клиентским фильтром при фильтре по вариантной оси (цвет и т.п.).
   const grpAttr = opts.groupSlug ? ` data-role="member" data-group="${esc(opts.groupSlug)}"` : "";
   const hiddenAttr = opts.hidden ? " hidden" : "";
   return `<a class="card pcard"${grpAttr}${hiddenAttr} href="${SITE_BASE}/product/${esc(p.slug)}/">${ph}<div class="card-body">${art}<div class="card-price">${p.price_from ? "от " + fmtPrice(p.price_from) : "Цена по запросу"}</div><div class="card-name">${esc(p.name)}</div>${brand}<div class="card-delivery"><img src="${SITE_BASE}/ic-delivery.svg" alt="" width="14" height="14"><span>Доставка от 1 дня</span></div></div><span class="btn-cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart-sm.svg" alt="" width="14" height="13"><span>В корзину</span></span></a>`;
@@ -173,8 +171,7 @@ function groupSwatches(g) {
   return `<div class="gt-swatches">${shown}${more}</div>`;
 }
 
-/** Групповая плитка «серия» в листинге — ведёт на /series/<slug>/. Компактно представляет
- *  набор SKU: обложка серии, бренд, название, свотчи, число вариантов, «от N ₽». */
+/** Групповая плитка «серия» в листинге — ведёт на /series/<slug>/. */
 export function groupTile(g) {
   const img = (g.image && (g.image.card || g.image.thumb))
     ? `<div class="card-img"><img src="${esc(g.image.card || g.image.thumb)}" alt="${esc(g.name)}" loading="lazy"></div>`
@@ -190,9 +187,7 @@ export function groupTile(g) {
     `<div class="gt-count">${n} ${vary} →</div></div></a>`;
 }
 
-/** Рендер сетки каталога со схлопыванием серий. gr (опц.): { index: {memberSlug: groupSlug},
- *  tiles: {groupSlug: html} }. Члены серии идут скрытыми сразу после групповой плитки;
- *  без gr — обычная плоская сетка (обратная совместимость). */
+/** Рендер сетки каталога со схлопыванием серий. gr (опц.): { index, tiles }. */
 export function renderCatalogGrid(products, gr) {
   if (!gr) return products.map((p) => productTile(p)).join("");
   const out = [];
@@ -209,8 +204,7 @@ export function renderCatalogGrid(products, gr) {
   return out.join("");
 }
 
-/** Оси различия вариантов для schema.org/ProductGroup — выводим на витрине из самих
- *  вариантов (цвет → schema color; ≥2 уровней → «Комплектация»), не из названий уровней. */
+/** Оси различия вариантов для schema.org/ProductGroup (цвет → schema color; ≥2 уровней → «Комплектация»). */
 function groupVariesBy(g) {
   const axes = [];
   if ((g.variants || []).some((v) => typeof v.color === "string" && /^#[0-9A-Fa-f]{6}$/.test(v.color))) axes.push("https://schema.org/color");
@@ -221,24 +215,14 @@ function groupVariesBy(g) {
 function groupJsonLd(g) {
   const brand = g.brand || null;
   const variants = (g.variants || []).map((v) => {
-    const obj = {
-      "@type": "Product",
-      name: v.name || `${g.name} ${v.label || ""}`.trim(),
-      url: `${SITE_BASE}/product/${v.slug}/`,
-    };
+    const obj = { "@type": "Product", name: v.name || `${g.name} ${v.label || ""}`.trim(), url: `${SITE_BASE}/product/${v.slug}/` };
     if (v.manufacturer_sku) obj.sku = v.manufacturer_sku;
     if (v.gtin) obj.gtin13 = v.gtin;
     if (v.thumbnail) obj.image = v.thumbnail;
     if (brand) obj.brand = { "@type": "Brand", name: brand };
     return obj;
   });
-  const obj = {
-    "@context": "https://schema.org",
-    "@type": "ProductGroup",
-    name: g.name,
-    productGroupID: g.slug,
-    url: `${SITE_BASE}/series/${g.slug}/`,
-  };
+  const obj = { "@context": "https://schema.org", "@type": "ProductGroup", name: g.name, productGroupID: g.slug, url: `${SITE_BASE}/series/${g.slug}/` };
   const desc = stripHtml(g.description_html || g.short_description || "").slice(0, 500);
   if (desc) obj.description = desc;
   if (g.image && (g.image.og || g.image.card)) obj.image = g.image.og || g.image.card;
@@ -249,8 +233,7 @@ function groupJsonLd(g) {
   return `<script type="application/ld+json">${JSON.stringify(obj).replace(/</g, "\\u003c")}</script>`;
 }
 
-/** Страница серии /series/<slug>/ — SEO-якорь: обложка + текст про серию, затем карточки
- *  SKU по уровням группировки. categoryTrail — канонический путь листа (крошки). */
+/** Страница серии /series/<slug>/ — обложка + текст про серию, затем карточки SKU по уровням. */
 export function seriesPage(g, categoryTrail, facetLinks) {
   const trail = [{ name: "Каталог", href: `${SITE_BASE}/` }];
   (categoryTrail || []).forEach((c) => trail.push({ name: c.name, href: `${SITE_BASE}/c/${c.slug}/` }));
@@ -261,7 +244,9 @@ export function seriesPage(g, categoryTrail, facetLinks) {
   const n = g.member_count || (g.variants || []).length;
   const metaBits = [g.brand ? esc(g.brand) : "", `${n} ${plural(n, "вариант", "варианта", "вариантов")}`,
     g.price_from ? "от " + fmtPrice(g.price_from) : ""].filter(Boolean).join(" · ");
-  const intro = g.description_html ? `<div class="rich series-intro">${g.description_html}</div>` : "";
+  // текст: полное описание серии, иначе — краткое (фолбэк, пока в PIM не заполнено description_html)
+  const introHtml = g.description_html ? g.description_html : (g.short_description ? `<p>${esc(g.short_description)}</p>` : "");
+  const intro = introHtml ? `<div class="rich series-intro">${introHtml}</div>` : "";
 
   const toTile = (v) => productTile({
     slug: v.slug, name: v.name || `${g.name} ${v.label || ""}`.trim(),
@@ -1261,12 +1246,11 @@ async function main() {
   }
 
   // ---------- серии (группы товаров) ----------
-  // /api/groups/ отдаёт только серии (is_series, member_count>=2); детали — с variants/levels.
   const brandBySlug = {};
   list.forEach((p) => { brandBySlug[p.slug] = p.brand || null; });
-  const groupBySlug = {};        // slug -> полная серия (для страниц и плиток)
-  const memberToGroup = {};      // slug товара -> slug серии (схлопываемые)
-  const groupTileBySlug = {};    // slug серии -> html групповой плитки
+  const groupBySlug = {};
+  const memberToGroup = {};
+  const groupTileBySlug = {};
   let ngroups = 0;
   const groupsList = await fetchList("/api/groups/");
   for (const gi of groupsList) {
@@ -1274,8 +1258,17 @@ async function main() {
     let g;
     try { g = await getJSON(`/api/groups/${gi.slug}/`); } catch (e) { continue; }
     if (!g || !g.slug) continue;
+    // Сводные поля берём из списка, если деталь их не отдала (деталь бывает тоньше
+    // по картинке/краткому тексту) — чтобы плитка и шапка серии не оставались пустыми.
+    g.image = g.image || gi.image || null;
+    g.short_description = g.short_description || gi.short_description || "";
+    g.name = g.name || gi.name;
+    g.category = g.category || gi.category;
+    g.audiences = (g.audiences && g.audiences.length) ? g.audiences : (gi.audiences || []);
+    g.directions = (g.directions && g.directions.length) ? g.directions : (gi.directions || []);
+    g.member_count = g.member_count || gi.member_count;
+    if (g.price_from == null) g.price_from = gi.price_from != null ? gi.price_from : null;
     const memberSlugs = (g.variants || []).map((v) => v.slug).filter(Boolean);
-    // бренд серии — из первого члена, присутствующего в списке товаров
     const fm = memberSlugs.find((s) => brandBySlug[s] != null);
     g.brand = fm ? brandBySlug[fm] : null;
     groupBySlug[g.slug] = g;
@@ -1283,7 +1276,6 @@ async function main() {
       groupTileBySlug[g.slug] = groupTile(g);
       memberSlugs.forEach((s) => { memberToGroup[s] = g.slug; });
     }
-    // страница серии /series/<slug>/
     const ctrail = (g.category && trailBySlug[g.category.slug]) ||
       (g.category ? [{ name: g.category.name, slug: g.category.slug }] : []);
     const fl = [];
@@ -1295,9 +1287,7 @@ async function main() {
     ngroups++;
   }
 
-  /** Для листинга: контекст схлопывания серий + мета для клиентского фильтра.
-   *  Возвращает { render:{index,tiles}|null, groupsMeta:{slug:{vary}}, repValues:{"g:slug":{...}} }.
-   *  vary — коды (+brand), по которым значения членов РАЗЛИЧАЮТСЯ (вариантные оси). */
+  /** Контекст схлопывания серий для листинга + мета для клиентского фильтра. */
   function groupListingCtx(prods, codes) {
     const present = {};
     for (const p of prods) {
@@ -1307,7 +1297,7 @@ async function main() {
     const index = {}, tiles = {}, groupsMeta = {}, repValues = {};
     for (const gs of Object.keys(present)) {
       const members = present[gs];
-      if (members.length < 2) continue; // в этом листинге меньше 2 членов — не схлопываем
+      if (members.length < 2) continue;
       members.forEach((p) => { index[p.slug] = gs; });
       tiles[gs] = groupTileBySlug[gs];
       const vary = [];
