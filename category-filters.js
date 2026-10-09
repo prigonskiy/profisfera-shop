@@ -15,12 +15,18 @@
   var data;
   try { data = JSON.parse(dataEl.textContent); } catch (e) { return; }
 
-  // карточки + их slug (из href /product/<slug>/)
+  // карточки: обычные товары, групповые плитки (data-role=group) и скрытые члены серии (data-role=member)
   var cards = Array.prototype.map.call(grid.querySelectorAll("a.card"), function (el) {
     var m = el.getAttribute("href").match(/\/product\/([^\/]+)\/?/);
-    return { el: el, slug: m ? decodeURIComponent(m[1]) : null };
+    return {
+      el: el,
+      slug: m ? decodeURIComponent(m[1]) : null,
+      role: el.getAttribute("data-role"),      // "group" | "member" | null
+      gslug: el.getAttribute("data-group")
+    };
   });
   var values = data.values || {};
+  var groupsMeta = data.groups || {};          // { groupSlug: { vary: [codes] } }
 
   // описания фильтров: бренд (если брендов >1) + категорийные
   var defs = [];
@@ -314,10 +320,40 @@
   }
 
   // ---------- применение ----------
+  // активен ли фильтр (есть выбор)
+  function isActive(d) {
+    var st = state[d.key];
+    if (d.display === "number_range") return st.min !== null || st.max !== null;
+    return setSize(st.set) > 0;
+  }
+  function activeCodes() {
+    var out = [];
+    defs.forEach(function (d) { if (isActive(d)) out.push(d.code); });
+    return out;
+  }
+  // активен ли среди фильтров хоть один из вариантных осей серии (→ «проваливаемся» в члены)
+  function drillGroup(gslug, active) {
+    var meta = groupsMeta[gslug] || { vary: [] };
+    for (var i = 0; i < active.length; i++) if (meta.vary.indexOf(active[i]) >= 0) return true;
+    return false;
+  }
+
   function apply() {
     var visible = 0;
+    var active = activeCodes();
     cards.forEach(function (c) {
-      var show = c.slug ? passesAll(c.slug, null) : true;
+      var show;
+      if (c.role === "group") {
+        // групповая плитка: при фильтре по вариантной оси прячем (показываем члены),
+        // иначе — показываем, если серия проходит невариантные фильтры (rep-значения).
+        show = drillGroup(c.gslug, active) ? false : passesAll("g:" + c.gslug, null);
+      } else if (c.role === "member") {
+        // член серии: виден только при «проваливании» и совпадении со всеми фильтрами.
+        show = drillGroup(c.gslug, active) && !!c.slug && passesAll(c.slug, null);
+      } else {
+        show = c.slug ? passesAll(c.slug, null) : true;
+      }
+      c.el.hidden = !show;                       // снимает HTML-атрибут hidden у членов
       c.el.style.display = show ? "" : "none";
       if (show) visible++;
     });

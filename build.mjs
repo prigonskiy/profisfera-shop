@@ -150,13 +150,163 @@ ${content}
 }
 
 /* ---------- плитка товара (ссылка) ---------- */
-function productTile(p) {
+function productTile(p, opts) {
+  opts = opts || {};
   const ph = p.thumbnail
     ? `<div class="card-img"><img src="${esc(p.thumbnail)}" alt="${esc(p.name)}" loading="lazy"></div>`
     : `<div class="card-img"><span class="noimg">без фото</span></div>`;
   const art = p.manufacturer_sku ? `<div class="card-sku">Артикул: ${esc(p.manufacturer_sku)}</div>` : "";
   const brand = p.brand ? `<div class="card-brand">${esc(p.brand)}</div>` : "";
-  return `<a class="card pcard" href="${SITE_BASE}/product/${esc(p.slug)}/">${ph}<div class="card-body">${art}<div class="card-price">${p.price_from ? "от " + fmtPrice(p.price_from) : "Цена по запросу"}</div><div class="card-name">${esc(p.name)}</div>${brand}<div class="card-delivery"><img src="${SITE_BASE}/ic-delivery.svg" alt="" width="14" height="14"><span>Доставка от 1 дня</span></div></div><span class="btn-cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart-sm.svg" alt="" width="14" height="13"><span>В корзину</span></span></a>`;
+  // член серии рендерится в DOM скрытым: групповая плитка показана по умолчанию,
+  // карточки-члены раскрываются клиентским фильтром при фильтре по вариантной оси (цвет и т.п.).
+  const grpAttr = opts.groupSlug ? ` data-role="member" data-group="${esc(opts.groupSlug)}"` : "";
+  const hiddenAttr = opts.hidden ? " hidden" : "";
+  return `<a class="card pcard"${grpAttr}${hiddenAttr} href="${SITE_BASE}/product/${esc(p.slug)}/">${ph}<div class="card-body">${art}<div class="card-price">${p.price_from ? "от " + fmtPrice(p.price_from) : "Цена по запросу"}</div><div class="card-name">${esc(p.name)}</div>${brand}<div class="card-delivery"><img src="${SITE_BASE}/ic-delivery.svg" alt="" width="14" height="14"><span>Доставка от 1 дня</span></div></div><span class="btn-cart" title="Корзина — скоро"><img src="${SITE_BASE}/ic-cart-sm.svg" alt="" width="14" height="13"><span>В корзину</span></span></a>`;
+}
+
+/** Свотчи серии: до 5 цветных точек из variants[].color (строго #RRGGBB), + «+N». */
+function groupSwatches(g) {
+  const colors = (g.variants || []).map((v) => v.color).filter((c) => typeof c === "string" && /^#[0-9A-Fa-f]{6}$/.test(c));
+  if (!colors.length) return "";
+  const shown = colors.slice(0, 5).map((c) => `<span class="gt-dot" style="background:${c}"></span>`).join("");
+  const more = colors.length > 5 ? `<span class="gt-more">+${colors.length - 5}</span>` : "";
+  return `<div class="gt-swatches">${shown}${more}</div>`;
+}
+
+/** Групповая плитка «серия» в листинге — ведёт на /series/<slug>/. Компактно представляет
+ *  набор SKU: обложка серии, бренд, название, свотчи, число вариантов, «от N ₽». */
+export function groupTile(g) {
+  const img = (g.image && (g.image.card || g.image.thumb))
+    ? `<div class="card-img"><img src="${esc(g.image.card || g.image.thumb)}" alt="${esc(g.name)}" loading="lazy"></div>`
+    : `<div class="card-img"><span class="noimg">без фото</span></div>`;
+  const brand = g.brand ? `<div class="card-brand">${esc(g.brand)}</div>` : "";
+  const n = g.member_count || (g.variants || []).length;
+  const price = g.price_from ? "от " + fmtPrice(g.price_from) : "Цена по запросу";
+  const vary = plural(n, "вариант", "варианта", "вариантов");
+  return `<a class="card pcard card-group" data-role="group" data-group="${esc(g.slug)}" href="${SITE_BASE}/series/${esc(g.slug)}/">` +
+    `<span class="gt-badge">Серия</span>${img}` +
+    `<div class="card-body"><div class="card-price">${price}</div>` +
+    `<div class="card-name">${esc(g.name)}</div>${brand}${groupSwatches(g)}` +
+    `<div class="gt-count">${n} ${vary} →</div></div></a>`;
+}
+
+/** Рендер сетки каталога со схлопыванием серий. gr (опц.): { index: {memberSlug: groupSlug},
+ *  tiles: {groupSlug: html} }. Члены серии идут скрытыми сразу после групповой плитки;
+ *  без gr — обычная плоская сетка (обратная совместимость). */
+export function renderCatalogGrid(products, gr) {
+  if (!gr) return products.map((p) => productTile(p)).join("");
+  const out = [];
+  const emitted = {};
+  for (const p of products) {
+    const gslug = gr.index[p.slug];
+    if (gslug && gr.tiles[gslug]) {
+      if (!emitted[gslug]) { out.push(gr.tiles[gslug]); emitted[gslug] = true; }
+      out.push(productTile(p, { groupSlug: gslug, hidden: true }));
+    } else {
+      out.push(productTile(p));
+    }
+  }
+  return out.join("");
+}
+
+/** Оси различия вариантов для schema.org/ProductGroup — выводим на витрине из самих
+ *  вариантов (цвет → schema color; ≥2 уровней → «Комплектация»), не из названий уровней. */
+function groupVariesBy(g) {
+  const axes = [];
+  if ((g.variants || []).some((v) => typeof v.color === "string" && /^#[0-9A-Fa-f]{6}$/.test(v.color))) axes.push("https://schema.org/color");
+  if ((g.levels || []).length >= 2) axes.push("Комплектация");
+  return axes;
+}
+
+function groupJsonLd(g) {
+  const brand = g.brand || null;
+  const variants = (g.variants || []).map((v) => {
+    const obj = {
+      "@type": "Product",
+      name: v.name || `${g.name} ${v.label || ""}`.trim(),
+      url: `${SITE_BASE}/product/${v.slug}/`,
+    };
+    if (v.manufacturer_sku) obj.sku = v.manufacturer_sku;
+    if (v.gtin) obj.gtin13 = v.gtin;
+    if (v.thumbnail) obj.image = v.thumbnail;
+    if (brand) obj.brand = { "@type": "Brand", name: brand };
+    return obj;
+  });
+  const obj = {
+    "@context": "https://schema.org",
+    "@type": "ProductGroup",
+    name: g.name,
+    productGroupID: g.slug,
+    url: `${SITE_BASE}/series/${g.slug}/`,
+  };
+  const desc = stripHtml(g.description_html || g.short_description || "").slice(0, 500);
+  if (desc) obj.description = desc;
+  if (g.image && (g.image.og || g.image.card)) obj.image = g.image.og || g.image.card;
+  if (brand) obj.brand = { "@type": "Brand", name: brand };
+  const vb = groupVariesBy(g);
+  if (vb.length) obj.variesBy = vb;
+  if (variants.length) obj.hasVariant = variants;
+  return `<script type="application/ld+json">${JSON.stringify(obj).replace(/</g, "\\u003c")}</script>`;
+}
+
+/** Страница серии /series/<slug>/ — SEO-якорь: обложка + текст про серию, затем карточки
+ *  SKU по уровням группировки. categoryTrail — канонический путь листа (крошки). */
+export function seriesPage(g, categoryTrail, facetLinks) {
+  const trail = [{ name: "Каталог", href: `${SITE_BASE}/` }];
+  (categoryTrail || []).forEach((c) => trail.push({ name: c.name, href: `${SITE_BASE}/c/${c.slug}/` }));
+  trail.push({ name: g.name });
+
+  const cover = (g.image && (g.image.card || g.image.thumb))
+    ? `<div class="series-cover"><img src="${esc(g.image.card || g.image.thumb)}" alt="${esc(g.name)}"></div>` : "";
+  const n = g.member_count || (g.variants || []).length;
+  const metaBits = [g.brand ? esc(g.brand) : "", `${n} ${plural(n, "вариант", "варианта", "вариантов")}`,
+    g.price_from ? "от " + fmtPrice(g.price_from) : ""].filter(Boolean).join(" · ");
+  const intro = g.description_html ? `<div class="rich series-intro">${g.description_html}</div>` : "";
+
+  const toTile = (v) => productTile({
+    slug: v.slug, name: v.name || `${g.name} ${v.label || ""}`.trim(),
+    thumbnail: v.thumbnail, brand: g.brand, manufacturer_sku: v.manufacturer_sku, price_from: v.price_from,
+  });
+  const levels = (g.levels || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  let body = "";
+  const placed = new Set();
+  levels.forEach((lvl) => {
+    const members = (g.variants || []).filter((v) => v.level === lvl.name);
+    if (!members.length) return;
+    members.forEach((v) => placed.add(v.slug));
+    body += `<section class="series-level"><h2 class="series-h2">${esc(lvl.name)}</h2><div class="grid">${members.map(toTile).join("")}</div></section>`;
+  });
+  const rest = (g.variants || []).filter((v) => !placed.has(v.slug));
+  if (rest.length) {
+    const head = levels.length ? `<h2 class="series-h2">Другие варианты</h2>` : "";
+    body += `<section class="series-level">${head}<div class="grid">${rest.map(toTile).join("")}</div></section>`;
+  }
+
+  const fchips = (arr) => (arr || []).map((x) => `<a class="facet-chip" href="${SITE_BASE}${x.url}">${esc(x.name)}</a>`).join("");
+  const facetBlock = (facetLinks && facetLinks.length)
+    ? `<div class="series-facets"><span class="facet-label">Направления</span><div class="facet-chips">${fchips(facetLinks)}</div></div>` : "";
+
+  const content = `<main class="page-shell series-page">
+  ${crumbs(trail)}
+  <header class="series-head">
+    ${cover}
+    <div class="series-head-main">
+      <h1 class="series-h1">${esc(g.name)}</h1>
+      ${metaBits ? `<div class="series-meta">${metaBits}</div>` : ""}
+      ${intro}
+      ${facetBlock}
+    </div>
+  </header>
+  ${body}
+</main>`;
+  return layout({
+    title: `${esc(g.meta_title || g.name)} — ПрофиСфера`,
+    description: g.meta_description || stripHtml(g.description_html || g.short_description || "").slice(0, 300),
+    canonical: `${SITE_BASE}/series/${g.slug}/`,
+    image: (g.image && (g.image.og || g.image.card)) || null, imageAlt: g.name,
+    jsonLd: groupJsonLd(g),
+    bodyClass: "page-series", content,
+  });
 }
 function grid(products, emptyText) {
   if (!products.length) return `<div class="state"><h3>Товаров пока нет</h3><p>${esc(emptyText || "")}</p></div>`;
@@ -457,10 +607,10 @@ function catNavCompact(cat, tree, counts) {
     </nav>`;
 }
 
-function categoryPage(cat, products, filterData, tree, counts) {
+function categoryPage(cat, products, filterData, tree, counts, groupRender) {
   const canonical = `${SITE_BASE}/c/${cat.slug}/`;
   const gridHtml = products.length
-    ? `<div class="grid" id="cat-grid">${products.map(productTile).join("")}</div>`
+    ? `<div class="grid" id="cat-grid">${renderCatalogGrid(products, groupRender)}</div>`
     : `<div class="state"><h3>Товаров пока нет</h3><p>В этой категории пока нет товаров.</p></div>`;
   const hasFilters =
     (filterData.filters && filterData.filters.length) ||
@@ -619,7 +769,7 @@ function directionCatNav(section, dir, currentCatSlug, minSlice, thinMode) {
 /** Контекстный срез «направление × листовая категория». fullCount — товаров в
  *  полной категории (весь каталог). Если срез == полная категория → canonical на
  *  каноническую страницу и без баннера. */
-export function directionCategoryPage(section, dir, group, fullCount, filterData, minSlice, thinMode) {
+export function directionCategoryPage(section, dir, group, fullCount, filterData, minSlice, thinMode, groupRender) {
   const products = group.products;
   const canonSame = products.length >= fullCount; // срез покрывает всю категорию
   const ownUrl = `${SITE_BASE}/${section.slug}/${dir.slug}/${group.catSlug}/`;
@@ -629,7 +779,7 @@ export function directionCategoryPage(section, dir, group, fullCount, filterData
     `<div class="ctx-banner">Показаны товары для направления «${esc(dir.title)}» — <b>${products.length}</b> из ${fullCount} в категории. <a href="${SITE_BASE}/c/${group.catSlug}/">Показать все «${esc(group.catName)}» (${fullCount})</a></div>`;
 
   const gridHtml = products.length
-    ? `<div class="grid" id="cat-grid">${products.map(productTile).join("")}</div>`
+    ? `<div class="grid" id="cat-grid">${renderCatalogGrid(products, groupRender)}</div>`
     : `<div class="state"><h3>Товаров пока нет</h3></div>`;
   const hasFilters = (filterData.filters && filterData.filters.length) || (filterData.brands && filterData.brands.length > 1);
   const nav = directionCatNav(section, dir, group.catSlug, minSlice, thinMode);
@@ -1110,6 +1260,74 @@ async function main() {
     n++;
   }
 
+  // ---------- серии (группы товаров) ----------
+  // /api/groups/ отдаёт только серии (is_series, member_count>=2); детали — с variants/levels.
+  const brandBySlug = {};
+  list.forEach((p) => { brandBySlug[p.slug] = p.brand || null; });
+  const groupBySlug = {};        // slug -> полная серия (для страниц и плиток)
+  const memberToGroup = {};      // slug товара -> slug серии (схлопываемые)
+  const groupTileBySlug = {};    // slug серии -> html групповой плитки
+  let ngroups = 0;
+  const groupsList = await fetchList("/api/groups/");
+  for (const gi of groupsList) {
+    if (!gi || !gi.slug) continue;
+    let g;
+    try { g = await getJSON(`/api/groups/${gi.slug}/`); } catch (e) { continue; }
+    if (!g || !g.slug) continue;
+    const memberSlugs = (g.variants || []).map((v) => v.slug).filter(Boolean);
+    // бренд серии — из первого члена, присутствующего в списке товаров
+    const fm = memberSlugs.find((s) => brandBySlug[s] != null);
+    g.brand = fm ? brandBySlug[fm] : null;
+    groupBySlug[g.slug] = g;
+    if (gi.is_series !== false && memberSlugs.length >= 2) {
+      groupTileBySlug[g.slug] = groupTile(g);
+      memberSlugs.forEach((s) => { memberToGroup[s] = g.slug; });
+    }
+    // страница серии /series/<slug>/
+    const ctrail = (g.category && trailBySlug[g.category.slug]) ||
+      (g.category ? [{ name: g.category.name, slug: g.category.slug }] : []);
+    const fl = [];
+    (g.directions || []).forEach((d) => { const h = dirLookup[d]; if (h) fl.push({ name: h.dirTitle, url: h.dirUrl }); });
+    const gdir = path.join(OUT, "series", g.slug);
+    await mkdir(gdir, { recursive: true });
+    await writeFile(path.join(gdir, "index.html"), seriesPage(g, ctrail, fl), "utf8");
+    urls.push(`${SITE_BASE}/series/${g.slug}/`);
+    ngroups++;
+  }
+
+  /** Для листинга: контекст схлопывания серий + мета для клиентского фильтра.
+   *  Возвращает { render:{index,tiles}|null, groupsMeta:{slug:{vary}}, repValues:{"g:slug":{...}} }.
+   *  vary — коды (+brand), по которым значения членов РАЗЛИЧАЮТСЯ (вариантные оси). */
+  function groupListingCtx(prods, codes) {
+    const present = {};
+    for (const p of prods) {
+      const gs = memberToGroup[p.slug];
+      if (gs) (present[gs] = present[gs] || []).push(p);
+    }
+    const index = {}, tiles = {}, groupsMeta = {}, repValues = {};
+    for (const gs of Object.keys(present)) {
+      const members = present[gs];
+      if (members.length < 2) continue; // в этом листинге меньше 2 членов — не схлопываем
+      members.forEach((p) => { index[p.slug] = gs; });
+      tiles[gs] = groupTileBySlug[gs];
+      const vary = [];
+      ["brand"].concat(codes).forEach((code) => {
+        const seen = new Set();
+        members.forEach((p) => {
+          const v = code === "brand" ? (p.brand || null) : (charsBySlug[p.slug] || {})[code];
+          seen.add(JSON.stringify(v === undefined ? null : v));
+        });
+        if (seen.size > 1) vary.push(code);
+      });
+      const rep = { brand: members[0].brand || null };
+      const ch0 = charsBySlug[members[0].slug] || {};
+      codes.forEach((code) => { if (vary.indexOf(code) < 0 && code in ch0) rep[code] = ch0[code]; });
+      repValues["g:" + gs] = rep;
+      groupsMeta[gs] = { vary };
+    }
+    return { render: Object.keys(tiles).length ? { index, tiles } : null, groupsMeta, repValues };
+  }
+
   // бренды
   const brands = await fetchList("/api/brands/");
   let nb = 0, nbc = 0;
@@ -1197,9 +1415,11 @@ async function main() {
       values[p.slug] = entry;
     }
     const filterData = { filters, brands: Array.from(brandsSet).sort(), values };
+    const gctx = groupListingCtx(prods, codes);
+    if (Object.keys(gctx.groupsMeta).length) { filterData.groups = gctx.groupsMeta; Object.assign(values, gctx.repValues); }
     const dir = path.join(OUT, "c", c.slug);
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, "index.html"), categoryPage(c, prods, filterData, tree, countBySlug), "utf8");
+    await writeFile(path.join(dir, "index.html"), categoryPage(c, prods, filterData, tree, countBySlug, gctx.render), "utf8");
     urls.push(`${SITE_BASE}/c/${c.slug}/`);
     nc++;
   }
@@ -1246,11 +1466,13 @@ async function main() {
           values[p.slug] = entry;
         }
         const filterData = { filters, brands: Array.from(bset).sort(), values };
+        const sctx = groupListingCtx(g.products, codes);
+        if (Object.keys(sctx.groupsMeta).length) { filterData.groups = sctx.groupsMeta; Object.assign(values, sctx.repValues); }
         const full = countBySlug[g.catSlug] || g.products.length;
         const gdir = path.join(OUT, section.slug, dir.slug, g.catSlug);
         await mkdir(gdir, { recursive: true });
         await writeFile(path.join(gdir, "index.html"),
-          directionCategoryPage(section, dir, g, full, filterData, minSlice, thinMode), "utf8");
+          directionCategoryPage(section, dir, g, full, filterData, minSlice, thinMode, sctx.render), "utf8");
         // в sitemap только самостоятельные срезы (не canonical на /c/)
         if (g.products.length < full) urls.push(`${SITE_BASE}/${section.slug}/${dir.slug}/${g.catSlug}/`);
         nslice++;
@@ -1311,6 +1533,7 @@ async function main() {
   await writeFile(path.join(OUT, "sitemap.xml"), sitemap(urls), "utf8");
   await writeFile(path.join(OUT, "robots.txt"), robots(), "utf8");
 
+  console.log(`  серий (групп): ${ngroups}`);
   console.log(`Готово: товаров ${n}, брендов ${nb} (стр. бренд×категория ${nbc}), категорий ${nc}, внешний каталог: разделов ${nsec}, направлений ${ndir}, групп ${ngroup}, срезов ${nslice}, кейсов ${ncases}, всего URL в sitemap ${urls.length}`);
 }
 
