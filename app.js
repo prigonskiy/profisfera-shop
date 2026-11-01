@@ -1,7 +1,14 @@
-const API_BASE = "https://profisfera-pim.ru";
-
-const api = (p) => API_BASE.replace(/\/$/,"") + p;
-const state = { view:"catalog", brand:null, brands:[], audience:null, direction:null, category:null, menu:[], next:null };
+// Витрина статична: данные берём из запечённых на сборке JSON рядом с app.js
+// (а не из публичного API PIM). Путь к данным якорим к расположению app.js,
+// а не к текущему URL страницы — иначе fetch сломается после history.replaceState.
+const SITE_ROOT = (function(){
+  const s = document.currentScript || document.querySelector('script[src*="app.js"]');
+  if(s && s.src) return s.src.replace(/app\.js(\?.*)?$/, "");
+  return location.href.replace(/[^/]*$/, "");
+})();
+const dataUrl = (p) => SITE_ROOT + String(p).replace(/^\//, "");
+const PAGE = 24;   // размер страницы клиентской подгрузки «Показать ещё»
+const state = { view:"catalog", brand:null, brandName:null, brands:[], audience:null, direction:null, category:null, menu:[], tree:[], all:null, filtered:[], shown:0 };
 let catCounts = {};
 const CAT_ICON = { "инструменты":"ic-cat-tools.svg", "материалы":"ic-cat-materials.svg", "оборудование":"ic-cat-equipment.svg" };
 function catIcon(name){ const f = CAT_ICON[(name||"").trim().toLowerCase()]; return f ? `<img class="nav-ic" src="${f}" alt="" width="20" height="20">` : ""; }
@@ -33,7 +40,7 @@ async function fetchJSON(url){
 
 /* ---------- навигация: аудитории + направления ---------- */
 async function loadMenu(){
-  state.menu = await fetchJSON(api("/api/audiences/menu/"));
+  state.menu = await fetchJSON(dataUrl("audiences-menu.json"));
   renderAudiences(); renderDirections();
 }
 function renderAudiences(){
@@ -66,7 +73,8 @@ function chip(label, active, on){
 /* ---------- категории (дерево-хребет) ---------- */
 async function loadTree(){
   // дерево теперь живёт в мегаменю «Каталог»; на главной из него строим только верхние ссылки навбара
-  const roots = await fetchJSON(api("/api/categories/tree/"));
+  const roots = await fetchJSON(dataUrl("tree.json"));
+  state.tree = roots;               // для клиентской фильтрации по поддереву категории
   buildMainnavCats(roots);
 }
 function treeNode(cat){
@@ -131,9 +139,8 @@ async function loadBrands(){
   const grid=$("#grid"); grid.innerHTML="";
   for(let i=0;i<4;i++) grid.appendChild(el("div","skel"));
   try{
-    const data = await fetchJSON(api("/api/brands/"));
+    const data = await fetchJSON(dataUrl("brands.json"));
     const items = data.results || data;
-    if(reset && state.view==="catalog") shuffle(items);   // главная = случайная витрина «топ-товаров» (бизнес-логика позже)
     state.brands = items;
     grid.innerHTML="";
     $("#count").innerHTML = "<b>"+items.length+"</b> производителей";
@@ -160,8 +167,10 @@ async function openBrand(slug){
   hero.innerHTML="<div class='skel' style='height:140px'></div>";
   $("#heading").textContent=""; $("#count").innerHTML=""; $("#grid").innerHTML="";
   try{
-    const b = await fetchJSON(api("/api/brands/"+encodeURIComponent(slug)+"/"));
-    state.brand = b.id;   // деталь ищем по slug, а товары фильтруем по числовому id
+    const brands = (state.brands && state.brands.length) ? state.brands : await fetchJSON(dataUrl("brands.json"));
+    const b = brands.find(x=>x.slug===slug);
+    if(!b) throw new Error("Бренд не найден");
+    state.brand = b.id; state.brandName = b.name;   // товары фильтруем по имени бренда
     let h="<button class='back' onclick=\"setView('brands')\">← Все производители</button>";
     h+="<div class='brandhead'>";
     if(b.logo) h+="<div class='blogo'><img src='"+esc(b.logo)+"' alt='"+esc(b.name)+"'></div>";
@@ -175,18 +184,49 @@ async function openBrand(slug){
   }catch(e){ hero.innerHTML=""; $("#grid").innerHTML=""; $("#grid").appendChild(errorState(e)); }
 }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+// каталог: весь список запечён в products.json, фильтрация и подгрузка — в браузере
+async function allProducts(){
+  if(!state.all) state.all = await fetchJSON(dataUrl("products.json"));
+  return state.all;
+}
+function descendantSlugs(slug){
+  const out = new Set();
+  (function walk(nodes, on){
+    (nodes||[]).forEach(n=>{
+      const hit = on || n.slug===slug;
+      if(hit) out.add(n.slug);
+      walk(n.children, hit);
+    });
+  })(state.tree, false);
+  return out;
+}
+function filterProducts(all){
+  if(state.view==="brand" && state.brandName){
+    return all.filter(p => p.brand === state.brandName);
+  }
+  let items = all.slice();
+  if(state.audience) items = items.filter(p => (p.audiences||[]).includes(state.audience));
+  if(state.direction) items = items.filter(p => (p.directions||[]).includes(state.direction));
+  if(state.category){ const set = descendantSlugs(state.category); items = items.filter(p => p.category && set.has(p.category)); }
+  return items;
+}
 async function loadProducts(reset){
   const grid=$("#grid");
   if(reset){ grid.innerHTML=""; for(let i=0;i<6;i++){const s=el("div","skel");grid.appendChild(s);} $("#more").style.display="none"; }
   try{
-    const url = reset ? api("/api/products/?"+queryString()) : state.next;
-    const data = await fetchJSON(url);
-    const items = data.results || data;
-    state.next = data.next || null;
-    if(reset){ grid.innerHTML=""; $("#count").innerHTML = (data.count!=null? "<b>"+data.count+"</b> товаров" : ""); }
-    if(reset && items.length===0){ grid.appendChild(emptyState()); return; }
-    items.forEach(p=>grid.appendChild(card(p)));
-    $("#more").style.display = state.next ? "block" : "none";
+    const all = await allProducts();
+    if(reset){
+      let items = filterProducts(all);
+      if(state.view==="catalog" && !state.audience && !state.direction && !state.category) shuffle(items);
+      state.filtered = items; state.shown = 0;
+      grid.innerHTML=""; $("#count").innerHTML = "<b>"+items.length+"</b> товаров";
+      if(items.length===0){ grid.appendChild(emptyState()); return; }
+    }
+    const items = state.filtered;
+    const slice = items.slice(state.shown, state.shown+PAGE);
+    slice.forEach(p=>grid.appendChild(card(p)));
+    state.shown += slice.length;
+    $("#more").style.display = state.shown < items.length ? "block" : "none";
   }catch(e){
     grid.innerHTML=""; grid.appendChild(errorState(e));
   }
@@ -208,9 +248,9 @@ function emptyState(){
 }
 function errorState(e){
   const d=el("div","state");
-  d.innerHTML="<h3>Не удалось связаться с PIM</h3>"+
-    "<p>Проверьте, что в <code>API_BASE</code> указан верный адрес и что на стороне PIM включён CORS для этого домена.</p>"+
-    "<p style='margin-top:8px;font-size:12px'>"+esc(e.message)+" → "+esc(API_BASE)+"</p>";
+  d.innerHTML="<h3>Не удалось загрузить данные</h3>"+
+    "<p>Не получилось прочитать данные витрины. Попробуйте обновить страницу.</p>"+
+    "<p style='margin-top:8px;font-size:12px'>"+esc(e.message)+"</p>";
   return d;
 }
 
@@ -221,7 +261,7 @@ async function openProduct(slug){
   dr.classList.add("open"); sc.classList.add("open"); dr.setAttribute("aria-hidden","false");
   document.body.style.overflow="hidden";
   try{
-    const p = await fetchJSON(api("/api/products/"+slug+"/"));
+    const p = await fetchJSON(dataUrl("product/"+encodeURIComponent(slug)+"/detail.json"));
     renderProduct(p);
   }catch(e){
     $(".dr-body",dr).innerHTML="<div class='state'><h3>Не удалось загрузить карточку</h3><p>"+esc(e.message)+"</p></div>";

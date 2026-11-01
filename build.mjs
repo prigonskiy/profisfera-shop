@@ -26,6 +26,7 @@ const SITE_BASE = (process.env.SITE_BASE || "https://prigonskiy.github.io/profis
 const FIXTURES = process.env.FIXTURES || null;
 const OUT = process.env.OUT || "_site";
 const ROOT = path.dirname(new URL(import.meta.url).pathname);
+const PIM_TOKEN = process.env.PIM_TOKEN || "";   // токен закрытого API; пусто — API ещё открыт
 
 /* ---------- слой данных: HTTP или фикстуры ---------- */
 function fixtureFile(apiPath) {
@@ -34,7 +35,9 @@ function fixtureFile(apiPath) {
 }
 async function getJSON(apiPath) {
   if (FIXTURES) return JSON.parse(await readFile(fixtureFile(apiPath), "utf8"));
-  const r = await fetch(API_BASE + apiPath, { headers: { Accept: "application/json" } });
+  const headers = { Accept: "application/json" };
+  if (PIM_TOKEN) headers.Authorization = "Token " + PIM_TOKEN;   // когда API закрыт — ходим с токеном
+  const r = await fetch(API_BASE + apiPath, { headers });
   if (!r.ok) throw new Error(`HTTP ${r.status} на ${apiPath}`);
   return r.json();
 }
@@ -142,7 +145,6 @@ ${content}
 </footer>
 <script src="${SITE_BASE}/catalog-menu.js" defer></script>
 <script src="${SITE_BASE}/search.js" defer></script>
-<script src="${SITE_BASE}/auth.js" defer></script>
 <script src="${SITE_BASE}/course.js" defer></script>
 </body>
 </html>
@@ -327,27 +329,17 @@ function productPage(p, categoryTrail, facets) {
 import { productMain } from "${SITE_BASE}/render-product.js";
 const CATEGORY_TRAIL = ${trailJson};
 const FACET_LINKS = ${facetsJson};
-const API = ${JSON.stringify(API_BASE)};
 const SITE = ${JSON.stringify(SITE_BASE)};
 const SLUG = ${JSON.stringify(p.slug)};
+// Гидрат из запечённого на сборке detail.json — без обращений к API PIM.
 async function renderProduct() {
   let d = null;
-  try { const r = await fetch(API + "/api/products/" + SLUG + "/", { headers: { Accept: "application/json" } }); d = r.ok ? await r.json() : null; } catch (e) {}
+  try { const r = await fetch(SITE + "/product/" + SLUG + "/detail.json", { headers: { Accept: "application/json" } }); d = r.ok ? await r.json() : null; } catch (e) {}
   if (!d) return;
-  const auth = window.ProfiAuth;
-  if (auth && auth.token) {
-    try {
-      const pr = await fetch(API + "/api/products/" + SLUG + "/pricing/", { headers: { Accept: "application/json", Authorization: "Bearer " + auth.token } });
-      if (pr.ok) { const pd = await pr.json(); d.offers = pd.offers; d.price_from = pd.price_from; }
-    } catch (e) {}
-  }
-  const role = (auth && auth.activeRole) || null;
   const m = document.querySelector(".product-shell");
-  if (m) m.innerHTML = productMain(d, SITE, CATEGORY_TRAIL, role, FACET_LINKS);
+  if (m) m.innerHTML = productMain(d, SITE, CATEGORY_TRAIL, null, FACET_LINKS);
 }
 renderProduct();
-window.addEventListener("profi:auth", renderProduct);
-window.addEventListener("profi:role", renderProduct);
 
 // Галерея товара: свап превью и просмотр оригинала. Делегируем на document —
 // переживает перерисовку .product-shell при гидрате/смене роли.
@@ -1241,6 +1233,7 @@ async function main() {
     const dir = path.join(OUT, "product", item.slug);
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, "index.html"), productPage(detail, trail, facetLinks(detail)), "utf8");
+    await writeFile(path.join(dir, "detail.json"), JSON.stringify(detail), "utf8");   // деталь для drawer статической витрины
     urls.push(`${SITE_BASE}/product/${item.slug}/`);
     n++;
   }
@@ -1373,6 +1366,13 @@ async function main() {
   for (const c of cats) countBySlug[c.slug] = list.filter((p) => c.slugs.includes(p.category)).length;
   await writeFile(path.join(OUT, "counts.json"), JSON.stringify(countBySlug), "utf8");
   await writeFile(path.join(OUT, "tree.json"), JSON.stringify(tree), "utf8");
+
+  // данные для статической витрины (app.js): весь каталог, бренды, меню аудиторий.
+  // Фильтрация/пагинация/карточка-drawer — целиком в браузере, без обращений к API PIM.
+  await writeFile(path.join(OUT, "products.json"), JSON.stringify(list), "utf8");
+  await writeFile(path.join(OUT, "brands.json"), JSON.stringify(brands), "utf8");
+  await writeFile(path.join(OUT, "audiences-menu.json"),
+    JSON.stringify(await getJSON("/api/audiences/menu/")), "utf8");
 
   // индекс поиска (клиентский) + страница результатов /search/
   const searchIndex = list.filter((p) => p.slug).map((p) => ({
