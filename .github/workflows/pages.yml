@@ -35,6 +35,7 @@ jobs:
         env:
           API_BASE: https://profisfera-pim.ru
           SITE_BASE: https://prigonskiy.github.io/profisfera-shop
+          PIM_TOKEN: ${{ secrets.PIM_TOKEN }}
         run: node build.mjs
 
       - uses: actions/configure-pages@v5
